@@ -14,7 +14,8 @@ namespace OpenWaters
                 $"ActiveForGeneration={OpenWatersSettings.AffectsGeneration}, " +
                 $"TargetLandCoverage={OpenWatersSettings.TargetLandCoverage:0.00}, " +
                 $"BiomeLimit={OpenWatersSettings.BiomeLimit}, " +
-                $"StartBiomeLimit={OpenWatersSettings.StartBiomeLimit}, ExcludeMountains={OpenWatersSettings.ExcludeMountains}");
+                $"StartBiomeLimit={OpenWatersSettings.StartBiomeLimit}, ExcludeMountains={OpenWatersSettings.ExcludeMountains}, " +
+                $"Preview={OpenWatersSettings.PreviewEnabled}");
         }
     }
 }

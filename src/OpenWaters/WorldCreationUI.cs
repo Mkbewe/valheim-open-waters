@@ -10,8 +10,9 @@ namespace OpenWaters
         private const float HeaderOffset = 25f;
         private const float SubHeaderOffset = 55f;
         private const float SliderOffset = 86f;
-        private const float ButtonsOffset = 107f;
-        private const float ExtraPanelHeight = 45f;
+        private const float ButtonsOffset = 137f;
+        private const float PreviewOffset = 119f;
+        private const float ExtraPanelHeight = 75f;
         private const float SliderRowHeight = 30f;
         private const float LabelWidth = 110f;
         private const float ValueWidth = 100f;
@@ -19,6 +20,8 @@ namespace OpenWaters
         private const float BarHeight = 10f;
         private const float HandleSize = 18f;
         private const float SliderEndPadding = 20f;
+        private const float PreviewWindowSize = 300f;
+        private const float PreviewWindowMargin = 24f;
 
         private static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
         private static readonly Color Orange = new Color(1f, 0.714f, 0.361f, 1f);
@@ -29,10 +32,16 @@ namespace OpenWaters
 
         private RectTransform _section;
         private RectTransform _sliderRow;
+        private RectTransform _previewRow;
+        private RectTransform _previewWindow;
         private RectTransform _sliderRect;
         private TextMeshProUGUI _sliderHeader;
         private TextMeshProUGUI _valueLabel;
+        private TextMeshProUGUI _previewLabel;
         private Slider _slider;
+        private Toggle _previewToggle;
+        private Button _previewButton;
+        private bool _previewGenerating;
         private RectTransform _layoutParent;
         private TextMeshProUGUI _header;
         private RectTransform _lineLeft;
@@ -82,6 +91,8 @@ namespace OpenWaters
             _lineRight = CreateLine(_section, "LineRight");
 
             CreateSliderRow(startup, parent);
+            CreatePreviewRow(startup, parent);
+            CreatePreviewWindow(startup, parent);
             OpenWatersPlugin.Log.LogInfo($"[UI] Created Open Waters section under '{parent.name}'.");
         }
 
@@ -122,6 +133,185 @@ namespace OpenWaters
             OnIslandsChanged(initial);
         }
 
+        private void CreatePreviewRow(FejdStartup startup, Transform parent)
+        {
+            _previewRow = CreateContainer(parent, "OpenWaters_PreviewRow");
+            _previewRow.sizeDelta = new Vector2(400f, 30f);
+
+            _previewToggle = BuildToggle(startup, _previewRow);
+            if (_previewToggle == null)
+            {
+                OpenWatersPlugin.Log.LogWarning("[UI] Could not find a toggle to base on.");
+                return;
+            }
+
+            SetAnchor((RectTransform)_previewToggle.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(30f, 30f));
+            _previewToggle.SetIsOnWithoutNotify(OpenWatersSettings.PreviewEnabled);
+            _previewToggle.onValueChanged.AddListener(value =>
+            {
+                OpenWatersSettings.PreviewEnabled = value;
+                OpenWatersPlugin.Log.LogInfo($"[UI] Preview={value}");
+            });
+
+            TMP_Text source = FindText(startup, "Seed") ?? FindSourceLabel(startup);
+            TextMeshProUGUI label = CreateText(_previewRow, "Label", "Preview", source, Orange, 16f, TextAlignmentOptions.Left);
+            _previewLabel = label;
+            RectTransform labelRect = label.rectTransform;
+            labelRect.anchorMin = new Vector2(0f, 0.5f);
+            labelRect.anchorMax = new Vector2(0f, 0.5f);
+            labelRect.pivot = new Vector2(0f, 0.5f);
+            labelRect.sizeDelta = new Vector2(150f, 26f);
+            labelRect.anchoredPosition = new Vector2(38f, 0f);
+        }
+
+        private void CreatePreviewWindow(FejdStartup startup, Transform parent)
+        {
+            _previewWindow = CreateContainer(parent, "OpenWaters_PreviewWindow");
+            _previewWindow.sizeDelta = new Vector2(PreviewWindowSize, PreviewWindowSize);
+
+            Image background = _previewWindow.gameObject.AddComponent<Image>();
+            background.color = new Color(0.02f, 0.02f, 0.02f, 0.88f);
+            background.raycastTarget = false;
+
+            TMP_Text source = FindSourceLabel(startup);
+            TextMeshProUGUI title = CreateText(_previewWindow, "Title", "Map preview", source, Orange, 18f, TextAlignmentOptions.Center);
+            SetAnchor(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(PreviewWindowSize - 20f, 26f));
+            title.rectTransform.anchoredPosition = new Vector2(0f, -8f);
+
+            TextMeshProUGUI hint = CreateText(_previewWindow, "Hint", "Preview will appear here", source, new Color(0.75f, 0.72f, 0.66f), 14f, TextAlignmentOptions.Center);
+            SetAnchor(hint.rectTransform, Center, Center, new Vector2(PreviewWindowSize - 30f, 22f));
+
+            _previewButton = BuildButton(startup, _previewWindow);
+            if (_previewButton != null)
+            {
+                SetAnchor((RectTransform)_previewButton.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(220f, 36f));
+                ((RectTransform)_previewButton.transform).anchoredPosition = new Vector2(0f, 10f);
+                _previewButton.onClick.AddListener(OnGeneratePreview);
+            }
+
+            _previewWindow.gameObject.SetActive(OpenWatersSettings.PreviewEnabled);
+        }
+
+        private static Button BuildButton(FejdStartup startup, Transform parent)
+        {
+            Button source = startup.m_newWorldDone;
+            if (source == null)
+            {
+                return null;
+            }
+
+            Image backgroundSource = source.targetGraphic as Image;
+            if (backgroundSource == null)
+            {
+                backgroundSource = source.GetComponent<Image>();
+            }
+            if (backgroundSource == null)
+            {
+                backgroundSource = source.GetComponentInChildren<Image>(true);
+            }
+            if (backgroundSource == null)
+            {
+                return null;
+            }
+
+            TMP_Text labelSource = source.GetComponentInChildren<TMP_Text>(true);
+
+            GameObject rootObject = new GameObject("GeneratePreviewButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            RectTransform root = (RectTransform)rootObject.transform;
+            root.SetParent(parent, false);
+
+            Image background = rootObject.GetComponent<Image>();
+            background.sprite = backgroundSource.sprite != null ? backgroundSource.sprite : WhiteSprite;
+            background.color = backgroundSource.color;
+            background.pixelsPerUnitMultiplier = backgroundSource.pixelsPerUnitMultiplier;
+            background.material = backgroundSource.material;
+            background.type = background.sprite.border != Vector4.zero ? Image.Type.Sliced : Image.Type.Simple;
+            background.raycastTarget = true;
+
+            Button button = rootObject.GetComponent<Button>();
+            button.targetGraphic = background;
+            button.transition = source.transition;
+            button.colors = source.colors;
+            button.spriteState = source.spriteState;
+            button.animationTriggers = source.animationTriggers;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+
+            Color labelColor = labelSource != null ? labelSource.color : ValueColor;
+            TextMeshProUGUI label = CreateText(root, "Text", "Generate preview", labelSource, labelColor, 20f, TextAlignmentOptions.Center);
+            SetAnchor(label.rectTransform, Center, Center, new Vector2(200f, 28f));
+
+            OpenWatersPlugin.Log.LogInfo($"[UI] Built preview button from '{source.name}'.");
+            return button;
+        }
+
+        private void OnGeneratePreview()
+        {
+            if (_previewGenerating)
+            {
+                return;
+            }
+
+            OpenWatersPlugin.Log.LogInfo("[UI] Generate preview requested (generator not implemented yet).");
+        }
+
+        private void SetPreviewGenerating(bool generating)
+        {
+            _previewGenerating = generating;
+            if (_previewButton != null)
+            {
+                _previewButton.interactable = !generating;
+            }
+        }
+
+        private static Toggle BuildToggle(FejdStartup startup, Transform parent)
+        {
+            Toggle source = startup.m_crossplayServerToggle != null
+                ? startup.m_crossplayServerToggle
+                : startup.m_samePlatformOnlyToggleWorldPanel;
+            if (source == null)
+            {
+                return null;
+            }
+
+            GameObject holder = new GameObject("OpenWaters_ToggleHolder", typeof(RectTransform));
+            holder.SetActive(false);
+            try
+            {
+                GameObject clone = UnityEngine.Object.Instantiate(source.gameObject, holder.transform, false);
+                clone.name = "PreviewToggle";
+
+                foreach (TMP_Text text in clone.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    UnityEngine.Object.DestroyImmediate(text.gameObject);
+                }
+
+                Toggle toggle = clone.GetComponent<Toggle>();
+                if (toggle == null)
+                {
+                    toggle = clone.GetComponentInChildren<Toggle>(true);
+                }
+                if (toggle == null)
+                {
+                    return null;
+                }
+
+                toggle.onValueChanged.RemoveAllListeners();
+                toggle.interactable = true;
+                Navigation navigation = toggle.navigation;
+                navigation.mode = Navigation.Mode.None;
+                toggle.navigation = navigation;
+
+                clone.transform.SetParent(parent, false);
+                clone.SetActive(true);
+                OpenWatersPlugin.Log.LogInfo($"[UI] Cloned preview toggle from '{source.name}'.");
+                return toggle;
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(holder);
+            }
+        }
+
         private void PositionAll(FejdStartup startup)
         {
             RectTransform parent = _section.parent as RectTransform;
@@ -150,6 +340,31 @@ namespace OpenWaters
                 float sliderWidth = Mathf.Max(140f, width - LabelWidth - ValueWidth - Gap * 2f);
                 _sliderRect.sizeDelta = new Vector2(sliderWidth, 20f);
             }
+            if (_previewRow != null)
+            {
+                Place(_previewRow, x, seedBottom - PreviewOffset * scale, width, 30f, z);
+            }
+
+            if (_previewWindow != null)
+            {
+                Vector3[] panelCorners = new Vector3[4];
+                parent.GetWorldCorners(panelCorners);
+                float worldSize = PreviewWindowSize * scale;
+                float worldMargin = PreviewWindowMargin * scale;
+                _previewWindow.sizeDelta = new Vector2(PreviewWindowSize, PreviewWindowSize);
+                _previewWindow.position = new Vector3(
+                    panelCorners[2].x + worldMargin + worldSize * 0.5f,
+                    panelCorners[1].y - worldSize * 0.5f,
+                    z);
+
+                bool visible = OpenWatersSettings.PreviewEnabled;
+                if (_previewWindow.gameObject.activeSelf != visible)
+                {
+                    _previewWindow.gameObject.SetActive(visible);
+                }
+            }
+
+            AlignPreviewToggle();
 
             PositionButton(startup.m_newWorldDone.GetComponent<RectTransform>(), seed);
             Transform cancel = parent.Find("Cancel");
@@ -159,8 +374,33 @@ namespace OpenWaters
             }
         }
 
-        private void ApplyPanelLayout(FejdStartup startup, RectTransform panel)
+        private void AlignPreviewToggle()
         {
+            if (_previewToggle == null || _previewLabel == null)
+            {
+                return;
+            }
+
+            Graphic visual = _previewToggle.graphic != null
+                ? (Graphic)_previewToggle.graphic
+                : _previewToggle.targetGraphic;
+            if (visual == null)
+            {
+                return;
+            }
+
+            Vector3[] corners = new Vector3[4];
+            visual.rectTransform.GetWorldCorners(corners);
+            float visualCenter = (corners[0].y + corners[2].y) * 0.5f;
+            _previewLabel.rectTransform.GetWorldCorners(corners);
+            float labelCenter = (corners[0].y + corners[2].y) * 0.5f;
+
+            Transform toggleTransform = _previewToggle.transform;
+            Vector3 position = toggleTransform.position;
+            toggleTransform.position = new Vector3(position.x, position.y + labelCenter - visualCenter, position.z);
+        }
+
+        private void ApplyPanelLayout(FejdStartup startup, RectTransform panel)        {
             if (panel == null || _layoutParent == panel)
             {
                 return;

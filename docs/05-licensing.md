@@ -1,10 +1,12 @@
 # 05 — Licencja i pochodzenie kodu
 
-Data: 2026-11-13
+Data: 2026-11-13 (aktualizacja: 2026-11-14 — potwierdzono MIT i utworzono pliki licencyjne)
 
 ## 1. Decyzja
 
-- Nasz kod: **MIT**.
+- Nasz kod: **MIT** (potwierdzone 2026-11-14).
+- Copyright holder: `Mkbewe`; pełne dane autora tylko w plikach prawnych (`LICENSE`, `THIRD-PARTY-NOTICES.md`).
+- Licencja obejmuje kod źródłowy i dokumentację w repo (o ile plik nie stanowi inaczej).
 - Kod piszemy samodzielnie. Z innych modów (Expand World Size, Better Continents) **nie kopiujemy kodu** — patrzymy tylko, jak rozwiązują problem.
 - Nie kopiujemy kodu gry (`assembly_valheim.dll` itd.). Dekompilacja służy wyłącznie do poznania API i zachowania.
 - Zależności runtime: **BepInEx** (LGPL-2.1) i **Harmony** (MIT) — linkowane, nie kopiowane. Użytkownik instaluje BepInEx osobno (Thunderstore dependency).
@@ -49,17 +51,19 @@ Alternatywa: **Apache-2.0**, jeśli zależy nam na formalnym grantcie patentowym
 
 ## 4. Pliki w repo
 
-Wymagane:
+Utworzone (2026-11-14):
 
-- `LICENSE` — pełny tekst MIT z rokiem i autorem.
-- `THIRD-PARTY-NOTICES.md` — kredyty i zależności.
-- `README.md` — sekcja `Credits` / `Licenses`.
+- `LICENSE` — pełny tekst MIT; zawiera pełne dane autora.
+- `THIRD-PARTY-NOTICES.md` — kredyty, inspiracje i zależności runtime (j. angielski).
+- `README.md` — sekcja `License` z linkami do powyższych.
 
-Szablon `THIRD-PARTY-NOTICES.md`:
+Uwaga prywatnościowa: poza plikami prawnymi (`LICENSE`, `THIRD-PARTY-NOTICES.md`) nie używamy imienia i nazwiska. Lokalne ścieżki w `docs/01-research.md` i `docs/04-next-steps.md` zostały zsanitizowane do `%USERPROFILE%` / `%TEMP%`.
+
+Szablon `THIRD-PARTY-NOTICES.md` (aktualny plik może być bardziej rozbudowany):
 
 ```text
 Open Waters
-Copyright (c) 2026 <autor>
+Copyright (c) 2026 Mkbewe (pełne dane w LICENSE)
 
 Ten projekt jest objęty licencją MIT (patrz LICENSE).
 
@@ -84,9 +88,12 @@ Zależności runtime (nie bundlowane):
 
 ## 6. Checklista przed publikacją
 
-- [ ] `LICENSE` (MIT) w repo i w paczce.
-- [ ] `THIRD-PARTY-NOTICES.md` zaktualizowany.
-- [ ] README: sekcja Credits.
+- [x] `LICENSE` (MIT) w repo.
+- [x] `THIRD-PARTY-NOTICES.md` zaktualizowany.
+- [x] README: sekcja `License`.
+- [ ] `LICENSE` i `THIRD-PARTY-NOTICES.md` dołączone do paczki.
 - [ ] Brak DLL-i gry i BepInEx w paczce.
 - [ ] Manifest Thunderstore: dependency BepInExPack (i inne, jeśli użyte).
 - [ ] Link do repo w `website_url`.
+- [x] Pliki prawne (`LICENSE`, `THIRD-PARTY-NOTICES.md`) zawierają pełne dane autora; poza nimi używany jest tylko nick.
+- [x] Lokalne ścieżki z nazwą użytkownika zsanitizowane w docs (`%USERPROFILE%` / `%TEMP%`).

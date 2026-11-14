@@ -12,7 +12,7 @@ Przed kodowaniem warto potwierdzić:
 4. **Podgląd** — przybliżony (szybki, replikacja modyfikatora i analizy na siatce 256²/512²) czy dokładny (tymczasowy `WorldGenerator`)?
 5. **UI** — IMGUI w stylu Valheima czy natywne Unity UI?
 6. **Języki** — UI tylko polski, tylko angielski, czy oba?
-7. **Nazwa autora / paczka Thunderstore** — np. `Kacper-Open_Waters`; potrzebny ostateczny nick.
+7. **Nazwa autora / paczka Thunderstore** — np. `Mkbewe-Open_Waters`; potrzebny ostateczny nick.
 8. **Czy mod ma być opcjonalny dla istniejących światów** (sidecar + ostrzeżenie) i jak obsłużyć usuwanie świata.
 9. **Stałe modyfikatora gęstości** — `Patchiness`, `PeakPreservation`, promień fade centrum (800–1600 m), siatka kalibracji (512²). Strojenie wizualne na kilku seedach.
 10. **Szczegóły wymuszania biomów** — wybór „zachowanych" biomów: top-N po powierzchni (obecny design) czy priorytet biomów progresji; nadpisywanie na dominantę czy na najbliższy zachowany biom; siatka 1024² czy 2048² (artefakty granic).
@@ -152,7 +152,7 @@ Przed kodowaniem warto potwierdzić:
 Build:
 
 ```powershell
-& "C:\Users\Kacper Bobrowski\.dotnet\dotnet.exe" build "D:\Projekty\valheim-open-waters\OpenWaters.sln" -c Debug
+& "$env:USERPROFILE\.dotnet\dotnet.exe" build "D:\Projekty\valheim-open-waters\OpenWaters.sln" -c Debug
 ```
 
 Log BepInEx:
@@ -170,9 +170,9 @@ Start-Process "D:\Lunchery\Steam\steamapps\common\Valheim\valheim.exe" -WorkingD
 Decompilacja (jeśli trzeba wrócić do źródeł gry):
 
 ```powershell
-& "C:\Users\KACPER~1\AppData\Local\Temp\opencode\valheim-research\ilspy\pkg-win\tools\any\win-x64\ilspycmd.exe" `
+& "$env:TEMP\opencode\valheim-research\ilspy\pkg-win\tools\any\win-x64\ilspycmd.exe" `
   "D:\Lunchery\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_valheim.dll" `
-  -t WorldGenerator -o "C:\Users\KACPER~1\AppData\Local\Temp\opencode\valheim-research\decompiled"
+  -t WorldGenerator -o "$env:TEMP\opencode\valheim-research\decompiled"
 ```
 
 ## 5. Stan na dziś

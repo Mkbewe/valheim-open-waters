@@ -1,33 +1,51 @@
 # Open Waters
 
-Mod do Valheima zmieniający generator świata: **mniej wysp, więcej otwartego oceanu**, z naturalnymi liniami brzegowymi. Dodatkowo panel preferencji przy tworzeniu świata (gęstość lądu, rozmiar świata, limit biomów na wyspę, podgląd mapy).
+A Valheim mod that changes world generation: **fewer islands, more open ocean**, with natural coastlines. It also adds a preferences panel on the world creation screen (land density, world size, per-island biome limit, map preview).
 
 ## Status
 
-- Etap: **research + design**. Kod jeszcze nie został napisany.
-- Data ustaleń: 2026-11-14
-- Nazwa: **Open Waters**
-- Katalog projektu: `D:\Projekty\valheim-open-waters`
+- Stage: **early development**. The project skeleton (BepInEx plugin, hello world) is in place; world-generation code is not implemented yet.
+- Decisions date: 2026-11-14
+- Name: **Open Waters**
+- Project directory: `D:\Projekty\valheim-open-waters`
 - DLL / assembly / namespace: `OpenWaters`
 - Plugin GUID: `valheim.openwaters`
-- Docelowy tryb: multiplayer LAN / dedykowany serwer (mod na serwerze i u klientów)
-- Kod: samodzielny (bez kopiowania z innych modów); licencja **MIT**
+- Target mode: multiplayer LAN / dedicated server (mod on the server and all clients)
+- Code: original (no copying from other mods); license **MIT**
 
-## Dokumentacja
+## Documentation
 
-- [`docs/01-research.md`](docs/01-research.md) — środowisko, stack moddingowy, przeanalizowane mody, linki.
-- [`docs/02-world-generation.md`](docs/02-world-generation.md) — jak działa generator świata Valheima 1.0.21 (zdekompilowane).
-- [`docs/03-design.md`](docs/03-design.md) — ustalona koncepcja (gęstość lądu z szumu, limit biomów per wyspa), UI, synchronizacja.
-- [`docs/04-next-steps.md`](docs/04-next-steps.md) — otwarte decyzje, plan wdrożenia, checklisty testów.
-- [`docs/05-licensing.md`](docs/05-licensing.md) — licencja MIT, kredyty, zasady korzystania z innych modów.
+> The documents are currently written in Polish.
 
-## Najważniejsze ustalenia
+- [`docs/01-research.md`](docs/01-research.md) — environment, modding stack, analyzed mods, links.
+- [`docs/02-world-generation.md`](docs/02-world-generation.md) — how the Valheim 1.0.21 world generator works (decompiled).
+- [`docs/03-design.md`](docs/03-design.md) — agreed design (noise-based land density, per-island biome limit), UI, synchronization.
+- [`docs/04-next-steps.md`](docs/04-next-steps.md) — open decisions, implementation plan, test checklists.
+- [`docs/05-licensing.md`](docs/05-licensing.md) — MIT license, credits, rules for using other mods.
 
-- Nie przepisujemy całego generatora. Zostawiamy vanilla i modyfikujemy `GetBaseHeight` (gęstość lądu) oraz `GetBiome` (limit biomów).
-- Gęstość lądu regulujemy szumem: obniżanie terenu / maska kontynentalna sprawia, że wyspy znikają naturalnie pod wodą — bez dyskretnego usuwania wysp.
-- Limit biomów per wyspa: bez limitu / max 1 / max 2 / max 3; osobny limit dla wyspy startowej; checkbox wyłączający góry z liczenia.
-- Nadmiarowe biomy są nadpisywane (wymuszanie biomu), bez usuwania wysp; biomy polarne i progresja są chronione.
-- Użytkownik dostaje suwaki: gęstość lądu 5–40% i rozmiar świata, oraz ustawienia limitów biomów.
-- Ustawienia mają być per świat i synchronizowane z serwera na klientów.
-- Panel preferencji ma być widoczny przy tworzeniu świata, z podglądem mapy i ostrzeżeniami.
-- Kod piszemy samodzielnie; EWS i Better Continents służą tylko jako referencja (bez kopiowania).
+## Key decisions
+
+- We do not rewrite the whole generator. We keep vanilla and modify `GetBaseHeight` (land density) and `GetBiome` (biome limit).
+- Land density is controlled by noise: lowering terrain / a continental mask makes islands disappear naturally underwater — no discrete island removal.
+- Per-island biome limit: unlimited / max 1 / max 2 / max 3; a separate limit for the starting island; a checkbox excluding mountains from the count.
+- Excess biomes are overwritten (biome forcing) without removing islands; polar biomes and progression are protected.
+- The player gets sliders for land density 5–40% and world size, plus biome-limit settings.
+- Settings are per world and synchronized from the server to clients.
+- The preferences panel is shown on the world creation screen, with a map preview and warnings.
+- Code is written from scratch; EWS and Better Continents are used only as references (no copying).
+
+## Development
+
+Build (the output DLL is copied to `BepInEx\plugins\OpenWaters\`):
+
+```powershell
+dotnet build OpenWaters.sln -c Debug
+```
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (lowercase type/scope/subject, header max 72 characters) and are checked by a Husky `commit-msg` hook. Run `npm install` once after cloning to enable the hook.
+
+## License
+
+Open Waters is licensed under the MIT License. See [LICENSE](LICENSE) for the full text.
+
+Third-party credits and runtime dependencies are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -11,9 +11,9 @@ Data: 2026-11-13
 | Unity | `6000.0.75.2503836` |
 | BepInEx | **5.4.23.6** z paczki **BepInExPack Valheim 5.4.2360** |
 | Log BepInEx | `D:\Lunchery\Steam\steamapps\common\Valheim\BepInEx\LogOutput.log` |
-| .NET SDK | **8.0.428**, instalacja per-user: `C:\Users\Kacper Bobrowski\.dotnet\dotnet.exe` |
+| .NET SDK | **8.0.428**, instalacja per-user: `%USERPROFILE%\.dotnet\dotnet.exe` |
 | Runtime .NET | 8.0.x obecny systemowo |
-| Backup starego BepInEx | `C:\Users\KACPER~1\AppData\Local\Temp\opencode\valheim-research\valheim-bepinex-backup-20261113-195137` |
+| Backup starego BepInEx | `%TEMP%\opencode\valheim-research\valheim-bepinex-backup-20261113-195137` |
 
 BepInEx został zainstalowany i zweryfikowany — log pokazuje poprawne ładowanie i `Valheim Version: 1.0.21`. Obecnie w `BepInEx/plugins` nie ma żadnych pluginów.
 
@@ -101,9 +101,9 @@ BepInEx został zainstalowany i zweryfikowany — log pokazuje poprawne ładowan
 ILSpy CLI (użyta wersja 11.2.0.10050) została pobrana do temp:
 
 ```powershell
-& "C:\Users\KACPER~1\AppData\Local\Temp\opencode\valheim-research\ilspy\pkg-win\tools\any\win-x64\ilspycmd.exe" `
+& "$env:TEMP\opencode\valheim-research\ilspy\pkg-win\tools\any\win-x64\ilspycmd.exe" `
   "D:\Lunchery\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_valheim.dll" `
-  -t WorldGenerator -o "C:\Users\KACPER~1\AppData\Local\Temp\opencode\valheim-research\decompiled"
+  -t WorldGenerator -o "$env:TEMP\opencode\valheim-research\decompiled"
 ```
 
 Jeśli temp zostanie wyczyszczony, można pobrać ILSpyCmd ponownie z NuGet (`ilspycmd.win-x64`) albo użyć ILSpy/dnSpy.

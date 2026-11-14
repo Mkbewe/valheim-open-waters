@@ -30,6 +30,8 @@ Poprzednia koncepcja zakładała usuwanie całych wysp i zachowanie ocalałych 1
 | Plugin GUID | `valheim.openwaters` |
 | Tryb gry | multiplayer LAN / dedykowany |
 | UI | panel przy tworzeniu świata + podgląd mapy |
+| Zakres v1 | **tylko liczba wysp**; limity biomów w kolejnej wersji |
+| Tryb domyślny | **Vanilla** — mod nie wpływa na generator (patch aktywne tylko dla Few/Medium) |
 | Gęstość lądu | **modyfikacja szumu `GetBaseHeight`** (bez usuwania wysp) |
 | Gęstość lądu (UI) | suwak 5–40% (domyślnie ~15%) |
 | Rozmiar świata | suwak, własna implementacja, 6000–10000 m |
@@ -266,11 +268,13 @@ Uwagi:
 - Odczyt nazwy: `FejdStartup.m_newWorldName`.
 - Technologia: IMGUI (`OnGUI`) w stylu Valheima; wzorzec: Better Continents `UI.cs`.
 - Zawartość:
-  - suwak **Gęstość lądu** 5–40% (domyślnie ~15%),
-  - suwak **Rozmiar świata** 6000–10000 m (domyślnie 10000),
-  - dropdown **Limit biomów na wyspie**: Bez limitu / Max 1 / Max 2 / Max 3 (domyślnie Bez limitu),
-  - dropdown **Limit biomów na wyspie startowej**: Bez limitu / Max 1 / Max 2 / Max 3 (domyślnie Bez limitu),
-  - checkbox **„Góry nie liczą się do limitu"** (domyślnie zaznaczony),
+  - **v1:** suwak **Number of islands**: Few / Medium / Vanilla (domyślnie **Vanilla**),
+  - Vanilla = brak modyfikacji generatora; `AffectsGeneration` jest wtedy `false` i żaden patch generacji nie działa,
+  - suwak **Gęstość lądu** 5–40% (domyślnie ~15%) — późniejsza wersja,
+  - suwak **Rozmiar świata** 6000–10000 m (domyślnie 10000) — późniejsza wersja,
+  - dropdown **Limit biomów na wyspie**: Bez limitu / Max 1 / Max 2 / Max 3 (domyślnie Bez limitu) — późniejsza wersja,
+  - dropdown **Limit biomów na wyspie startowej**: Bez limitu / Max 1 / Max 2 / Max 3 (domyślnie Bez limitu) — późniejsza wersja,
+  - checkbox **„Góry nie liczą się do limitu"** (domyślnie zaznaczony) — późniejsza wersja,
   - pole seeda / przycisk „losuj",
   - przycisk **Podgląd** -> wygeneruj teksturę mapy,
   - przycisk **Zastosuj** -> zapisz ustawienia dla tej nazwy/seedu.

@@ -101,6 +101,8 @@ Przed kodowaniem warto potwierdzić:
 ### Teren i wyspy
 
 - [ ] Vanilla (bez moda) — punkt odniesienia.
+- [ ] **Vanilla na suwaku** — mod nieaktywny; świat identyczny z grą bez moda.
+- [ ] **Few / Medium** — mod modyfikuje liczbę wysp (pierwsza wersja).
 - [ ] `LandCoverage` ~30–40% wygląda podobnie do vanilla.
 - [ ] 15% — wyraźnie mniej wysp, więcej oceanu.
 - [ ] 5% — bardzo mało lądu, ale świat grywalny (brak „półek" i dziwnych płycizn).

@@ -32,15 +32,17 @@ Poprzednia koncepcja zakładała usuwanie całych wysp i zachowanie ocalałych 1
 | UI | panel przy tworzeniu świata + podgląd mapy |
 | Zakres v1 | **tylko liczba wysp**; limity biomów w kolejnej wersji |
 | Tryb domyślny | **Vanilla** — mod nie wpływa na generator (patch aktywne tylko dla Few/Medium) |
+| Presety v1 | **Few ≈ 8% lądu, Medium ≈ 15% lądu, Vanilla bez zmian** (wartości startowe do strojenia) |
 | Gęstość lądu | **modyfikacja szumu `GetBaseHeight`** (bez usuwania wysp) |
 | Gęstość lądu (UI) | suwak 5–40% (domyślnie ~15%) |
 | Rozmiar świata | suwak, własna implementacja, 6000–10000 m |
 | Limit biomów per wyspa | **bez limitu / max 1 / max 2 / max 3** (domyślnie bez limitu) |
 | Limit wyspy startowej | osobne ustawienie: bez limitu / 1 / 2 / 3 (domyślnie bez limitu) |
+| Wyspa startowa (biomy) | zawsze zachowana; nadmiarowe biomy przycinane wg `StartBiomeLimit` (późniejsza wersja) |
 | Sposób wymuszania limitu | nadpisanie biomu nadmiarowych komórek (bez usuwania wysp) |
 | Próg liczenia biomów | **brak** — każdy biom się liczy (nawet pojedyncze komórki) |
 | Góry | checkbox „góry nie liczą się do limitu"; gdy wyłączony — góry są liczone i mogą zostać nadpisane |
-| Wyspa startowa | zawsze zachowana; jej nadmiarowe biomy są przycinane (nadpisywane) wg osobnego limitu |
+| Wyspa startowa | może się zmniejszać, ale musi pozostać grywalna: rdzeń ~700–800 m bez modyfikacji, fade do ~1600–1800 m, minimum ~0,10–0,15 km² ciągłego lądu (adaptacyjnie) |
 | Biomy polarne | AshLands i DeepNorth nigdy nie są nadpisywane (zawsze wyłączone z liczenia i wymuszania) |
 | Ochrona progresji | żaden biom lądowy nie może zniknąć z całego świata; w razie konfliktu wymuszanie jest częściowo cofane na najmniejszej wyspie z tym biomem |
 | MinIslandArea | usunięte z zakresu — nieaktualne przy podejściu szumowym |
@@ -129,6 +131,8 @@ Wszystko deterministyczne: ten sam seed + ustawienia = ten sam teren na serwerze
 
 ### 4.3. Kalibracja pod `LandCoverage`
 
+- Presety v1: `Few` -> target `0.08`, `Medium` -> target `0.15`; `Vanilla` nieaktywna (`0`).
+- Wartości są startowe — po testach na kilku seedach można je dostroić bez zmiany logiki.
 - Próbkujemy **surowe** `GetBaseHeight` na siatce 512×512 w kole `WorldRadius`, zapisujemy też `m` i `fade` dla każdej próbki.
 - Udział lądu = odsetek próbek, gdzie `raw - mod > 0.02` (próg oceanu z `GetBiome`).
 - `Bias` znajdujemy binary searchem (funkcja monotoniczna); ~12 iteracji po gotowych próbkach = tanio.
@@ -150,6 +154,7 @@ Nie potrzebujemy osobnej maski `ForceOcean` ani sztucznego „usuwania" komponen
 ### 4.5. Znane konsekwencje
 
 - **Brak 1:1**: linie brzegowe wysp przesuwają się, teren jest niższy; przy dużym obniżeniu giną góry (łagodzone przez `PeakPreservation`).
+- **Wyspa startowa może się zmniejszyć** (zewnętrzne partie mogą zniknąć), ale rdzeń wokół centrum pozostaje niemodyfikowany; po kalibracji sprawdzamy minimalną powierzchnię ciągłego lądu i w razie potrzeby lokalnie zmniejszamy modyfikator.
 - Przy dużym `Patchiness` mogą powstać szerokie, płytkie przejścia (łagodne stoki pod wodą) — akceptowalne wizualnie, do oceny na podglądzie.
 - Stare światy: nowe strefy będą się różnić od już wygenerowanych (szew na granicy stref). Zalecany świeży świat + ostrzeżenie.
 - Menu background nietknięty (skip `menuTerrain`).

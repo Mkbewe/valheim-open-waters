@@ -394,12 +394,13 @@ namespace OpenWaters
             float fontSize,
             TextAlignmentOptions alignment)
         {
-            GameObject textObject = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+            GameObject textObject = new GameObject(name, typeof(RectTransform));
+            textObject.SetActive(false);
             RectTransform rect = (RectTransform)textObject.transform;
             rect.SetParent(parent, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = Center;
 
-            TextMeshProUGUI label = textObject.GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
             if (source != null)
             {
                 label.font = source.font;
@@ -412,6 +413,7 @@ namespace OpenWaters
             label.enableWordWrapping = false;
             label.overflowMode = TextOverflowModes.Overflow;
             label.raycastTarget = false;
+            textObject.SetActive(true);
             label.ForceMeshUpdate();
             return label;
         }

@@ -29,6 +29,7 @@ A Valheim mod that changes world generation: **fewer islands, more open ocean**,
 - Land density is controlled by noise: lowering terrain / a continental mask makes islands disappear naturally underwater — no discrete island removal.
 - Per-island biome limit: unlimited / max 1 / max 2 / max 3; a separate limit for the starting island; a checkbox excluding mountains from the count (later version).
 - First version changes **only the number of islands**; the default **Vanilla** setting leaves world generation completely untouched.
+- Initial island presets: **Few ≈ 8% land**, **Medium ≈ 15% land**, **Vanilla = no changes** (targets to be tuned after testing).
 - Excess biomes are overwritten (biome forcing) without removing islands; polar biomes and progression are protected (later version).
 - The player gets sliders for land density 5–40% and world size, plus biome-limit settings.
 - Settings are per world and synchronized from the server to clients.

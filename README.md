@@ -9,7 +9,7 @@ Mod do Valheima zmieniający generator świata: **mniej wysp, więcej otwartego 
 - Nazwa: **Open Waters**
 - Katalog projektu: `D:\Projekty\valheim-open-waters`
 - DLL / assembly / namespace: `OpenWaters`
-- Plugin GUID: `pl.kacper.openwaters`
+- Plugin GUID: `valheim.openwaters`
 - Docelowy tryb: multiplayer LAN / dedykowany serwer (mod na serwerze i u klientów)
 - Kod: samodzielny (bez kopiowania z innych modów); licencja **MIT**
 

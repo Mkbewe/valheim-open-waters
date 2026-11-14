@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <ValheimDir>D:\Lunchery\Steam\steamapps\common\Valheim</ValheimDir>
+    <BepInExDir>$(ValheimDir)\BepInEx</BepInExDir>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+  </PropertyGroup>
+</Project>

@@ -27,7 +27,7 @@ Poprzednia koncepcja zakładała usuwanie całych wysp i zachowanie ocalałych 1
 | Nazwa | **Open Waters** |
 | Katalog | `D:\Projekty\valheim-open-waters` |
 | Assembly / namespace | `OpenWaters` |
-| Plugin GUID | `pl.kacper.openwaters` |
+| Plugin GUID | `valheim.openwaters` |
 | Tryb gry | multiplayer LAN / dedykowany |
 | UI | panel przy tworzeniu świata + podgląd mapy |
 | Gęstość lądu | **modyfikacja szumu `GetBaseHeight`** (bez usuwania wysp) |

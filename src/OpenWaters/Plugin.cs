@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Logging;
+using HarmonyLib;
 
 namespace OpenWaters
 {
@@ -16,6 +17,8 @@ namespace OpenWaters
         private void Awake()
         {
             Log = Logger;
+            new Harmony(PluginGuid).PatchAll();
+            gameObject.AddComponent<WorldCreationUI>();
             Log.LogInfo("Open Waters plugin loaded.");
         }
     }

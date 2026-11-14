@@ -102,12 +102,12 @@ Przed kodowaniem warto potwierdzić:
 
 - [ ] Vanilla (bez moda) — punkt odniesienia.
 - [ ] **Vanilla na suwaku** — mod nieaktywny; świat identyczny z grą bez moda.
-- [ ] **Few / Medium** — mod modyfikuje liczbę wysp (pierwsza wersja).
+- [ ] **Few / Medium** — mod modyfikuje liczbę wysp (pierwsza wersja); cele startowe: Few ≈ 8% lądu, Medium ≈ 15% lądu.
 - [ ] `LandCoverage` ~30–40% wygląda podobnie do vanilla.
 - [ ] 15% — wyraźnie mniej wysp, więcej oceanu.
 - [ ] 5% — bardzo mało lądu, ale świat grywalny (brak „półek" i dziwnych płycizn).
 - [ ] Linie brzegowe naturalne; brak „ścian" i binarnych/kwadratowych artefaktów.
-- [ ] Wyspa startowa zawsze istnieje; spawn i StartTemple na lądzie.
+- [ ] Wyspa startowa zawsze istnieje; spawn i StartTemple na lądzie; minimalna powierzchnia ciągłego lądu ~0,10–0,15 km².
 - [ ] Góry występują przy 15% (PeakPreservation działa); przy 5% — ocena, czy nie znikają całkowicie.
 - [ ] Mistlands / Ashlands / Deep North osiągalne (bossy, progresja).
 - [ ] Trader i bossy znajdują miejsca.

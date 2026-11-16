@@ -54,6 +54,7 @@ namespace OpenWaters
             if (_section != null)
             {
                 PositionAll(startup);
+                UpdatePreviewCacheState();
             }
         }
 

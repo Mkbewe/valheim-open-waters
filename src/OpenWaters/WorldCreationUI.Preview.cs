@@ -27,12 +27,12 @@ namespace OpenWaters
             public int MinY;
             public int MaxY;
         }
+
         private RectTransform _previewRow;
         private RectTransform _previewWindow;
         private RawImage _previewImage;
         private TextMeshProUGUI _previewTitle;
         private TextMeshProUGUI _previewHint;
-        private Texture2D _previewTexture;
         private TextMeshProUGUI _previewLabel;
         private Toggle _previewToggle;
         private Button _previewButton;
@@ -124,10 +124,19 @@ namespace OpenWaters
                 return;
             }
 
-            StartCoroutine(GeneratePreviewCoroutine(startup.m_newWorldSeed.text));
+            string seed = startup.m_newWorldSeed.text;
+            string key = GetPreviewKey(seed);
+            if (TryGetCachedPreview(key, out PreviewCacheEntry cached))
+            {
+                _lastPreviewKey = key;
+                ShowCachedPreview(cached);
+                return;
+            }
+
+            StartCoroutine(GeneratePreviewCoroutine(seed, key));
         }
 
-        private IEnumerator GeneratePreviewCoroutine(string seed)
+        private IEnumerator GeneratePreviewCoroutine(string seed, string key)
         {
             SetPreviewGenerating(true);
             if (_previewTitle != null)
@@ -177,6 +186,7 @@ namespace OpenWaters
 
             if (texture == null)
             {
+                _lastPreviewKey = key;
                 if (_previewTitle != null)
                 {
                     _previewTitle.text = "Map preview";
@@ -189,24 +199,15 @@ namespace OpenWaters
                 yield break;
             }
 
-            if (_previewTexture != null)
+            PreviewCacheEntry entry = new PreviewCacheEntry
             {
-                UnityEngine.Object.Destroy(_previewTexture);
-            }
-            _previewTexture = texture;
-            if (_previewImage != null)
-            {
-                _previewImage.texture = _previewTexture;
-                _previewImage.enabled = true;
-            }
-            if (_previewTitle != null)
-            {
-                _previewTitle.text = $"Preview - {islands} islands";
-            }
-            if (_previewHint != null)
-            {
-                _previewHint.gameObject.SetActive(false);
-            }
+                Key = key,
+                Texture = texture,
+                Islands = islands
+            };
+            StoreCachedPreview(entry);
+            _lastPreviewKey = key;
+            ShowCachedPreview(entry);
 
             long elapsedMs = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
             OpenWatersPlugin.Log.LogInfo($"[Preview] Seed='{seed}', islands={islands}, components={components}, land={landPercent:P1}, time={elapsedMs} ms.");

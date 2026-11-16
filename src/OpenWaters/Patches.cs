@@ -25,7 +25,7 @@ namespace OpenWaters
                 $"Land={OpenWatersSettings.LandFraction:P0}, " +
                 $"BiomeLimit={OpenWatersSettings.BiomeLimit}, " +
                 $"StartBiomeLimit={OpenWatersSettings.StartBiomeLimit}, ExcludeMountains={OpenWatersSettings.ExcludeMountains}, " +
-                $"Preview={OpenWatersSettings.PreviewEnabled}");
+                $"Preview={OpenWatersSettings.PreviewEnabled}, Enabled={OpenWatersSettings.Enabled}");
         }
 
         [HarmonyPostfix]

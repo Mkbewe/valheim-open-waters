@@ -25,7 +25,7 @@ namespace OpenWaters
 
         public static void Capture(string name, string seed)
         {
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(seed))
+            if (!OpenWatersSettings.Enabled || string.IsNullOrEmpty(name) || string.IsNullOrEmpty(seed))
             {
                 return;
             }
@@ -45,7 +45,7 @@ namespace OpenWaters
 
         public static void Persist(World world)
         {
-            if (!CanUseWorldSettings(world))
+            if (!OpenWatersSettings.Enabled || !CanUseWorldSettings(world))
             {
                 return;
             }
@@ -62,6 +62,22 @@ namespace OpenWaters
         {
             if (world == null || world.m_menu || world.m_worldName == OpenWatersSettings.PreviewWorldName)
             {
+                return;
+            }
+
+            if (!OpenWatersSettings.Enabled)
+            {
+                string sidecarPath = GetSidecarPath(world);
+                if (sidecarPath != null && File.Exists(sidecarPath))
+                {
+                    OpenWatersPlugin.Log.LogWarning(
+                        $"[Settings] Open Waters disabled; '{world.m_worldName}' has a sidecar, but generation changes are skipped.");
+                }
+                else
+                {
+                    OpenWatersPlugin.Log.LogInfo(
+                        $"[Settings] Open Waters disabled; skipping world settings for '{world.m_worldName}'.");
+                }
                 return;
             }
 

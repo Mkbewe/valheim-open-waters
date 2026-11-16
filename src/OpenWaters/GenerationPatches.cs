@@ -13,7 +13,8 @@ namespace OpenWaters
             NoiseModifier.SetWorld(world);
             OpenWatersPlugin.Log.LogInfo(
                 $"[Gen] Initialize world='{world.m_worldName}' seed='{world.m_seedName}', menu={world.m_menu}, " +
-                $"preset={OpenWatersSettings.IslandAmountName}, land={OpenWatersSettings.LandFraction:P0}");
+                $"enabled={OpenWatersSettings.Enabled}, preset={OpenWatersSettings.IslandAmountName}, " +
+                $"land={OpenWatersSettings.LandFraction:P0}");
         }
     }
 

@@ -61,7 +61,7 @@ namespace OpenWaters
         }
 
 
-        private static Toggle BuildToggle(FejdStartup startup, Transform parent)
+        private static Toggle BuildToggle(FejdStartup startup, Transform parent, string objectName = "PreviewToggle")
         {
             Toggle source = startup.m_crossplayServerToggle != null
                 ? startup.m_crossplayServerToggle
@@ -76,7 +76,7 @@ namespace OpenWaters
             try
             {
                 GameObject clone = UnityEngine.Object.Instantiate(source.gameObject, holder.transform, false);
-                clone.name = "PreviewToggle";
+                clone.name = objectName;
 
                 foreach (TMP_Text text in clone.GetComponentsInChildren<TMP_Text>(true))
                 {
@@ -101,7 +101,7 @@ namespace OpenWaters
 
                 clone.transform.SetParent(parent, false);
                 clone.SetActive(true);
-                OpenWatersPlugin.Log.LogInfo($"[UI] Cloned preview toggle from '{source.name}'.");
+                OpenWatersPlugin.Log.LogInfo($"[UI] Cloned toggle '{objectName}' from '{source.name}'.");
                 return toggle;
             }
             finally

@@ -9,7 +9,7 @@ namespace OpenWaters
 {
     internal sealed partial class WorldCreationUI
     {
-        private const float PreviewOffset = 119f;
+        private const float PreviewOffset = 277f;
         private const float PreviewWindowWidth = 360f;
         private const float PreviewWindowHeight = 420f;
         private const float PreviewWindowMargin = 24f;
@@ -35,6 +35,8 @@ namespace OpenWaters
         private TextMeshProUGUI _previewHint;
         private TextMeshProUGUI _previewLabel;
         private Toggle _previewToggle;
+        private Toggle _enabledToggle;
+        private TextMeshProUGUI _enabledLabel;
         private Button _previewButton;
         private bool _previewGenerating;
 
@@ -107,13 +109,14 @@ namespace OpenWaters
                 _previewButton.onClick.AddListener(OnGeneratePreview);
             }
 
-            _previewWindow.gameObject.SetActive(OpenWatersSettings.PreviewEnabled);
+            _previewWindow.gameObject.SetActive(OpenWatersSettings.Enabled && OpenWatersSettings.PreviewEnabled);
+            UpdateEnabledState();
         }
 
 
         private void OnGeneratePreview()
         {
-            if (_previewGenerating)
+            if (_previewGenerating || !OpenWatersSettings.Enabled)
             {
                 return;
             }
@@ -442,11 +445,27 @@ namespace OpenWaters
             _previewGenerating = generating;
             if (_previewButton != null)
             {
-                _previewButton.interactable = !generating;
+                _previewButton.interactable = OpenWatersSettings.Enabled && !generating;
             }
             if (_slider != null)
             {
-                _slider.interactable = !generating;
+                _slider.interactable = OpenWatersSettings.Enabled && !generating;
+            }
+            if (_biomeSlider != null)
+            {
+                _biomeSlider.interactable = OpenWatersSettings.Enabled && !generating;
+            }
+            if (_mountainsToggle != null)
+            {
+                _mountainsToggle.interactable = OpenWatersSettings.Enabled && !generating;
+            }
+            if (_previewToggle != null)
+            {
+                _previewToggle.interactable = OpenWatersSettings.Enabled && !generating;
+            }
+            if (_enabledToggle != null)
+            {
+                _enabledToggle.interactable = !generating;
             }
 
             FejdStartup startup = FejdStartup.instance;
@@ -456,17 +475,99 @@ namespace OpenWaters
             }
         }
 
+        private void OnEnabledChanged(bool enabled)
+        {
+            OpenWatersPlugin.SetEnabled(enabled);
+            UpdateEnabledState();
+        }
+
+        private void UpdateEnabledState()
+        {
+            bool enabled = OpenWatersSettings.Enabled;
+            if (_slider != null)
+            {
+                _slider.interactable = enabled && !_previewGenerating;
+            }
+            if (_sliderHeader != null)
+            {
+                _sliderHeader.gameObject.SetActive(enabled);
+            }
+            if (_sliderRow != null)
+            {
+                _sliderRow.gameObject.SetActive(enabled);
+            }
+            if (_titleRow != null)
+            {
+                _titleRow.gameObject.SetActive(enabled);
+            }
+            if (_startingIslandHeader != null)
+            {
+                _startingIslandHeader.gameObject.SetActive(enabled);
+            }
+            if (_startingIslandRow != null)
+            {
+                _startingIslandRow.gameObject.SetActive(enabled);
+            }
+            if (_mountainsRow != null)
+            {
+                _mountainsRow.gameObject.SetActive(enabled);
+            }
+            if (_biomeRow != null)
+            {
+                _biomeRow.gameObject.SetActive(enabled);
+            }
+            if (_previewRow != null)
+            {
+                _previewRow.gameObject.SetActive(enabled);
+            }
+            if (_mountainsToggle != null)
+            {
+                _mountainsToggle.interactable = enabled && !_previewGenerating;
+            }
+            if (_biomeSlider != null)
+            {
+                _biomeSlider.interactable = enabled && !_previewGenerating;
+            }
+            if (_previewToggle != null)
+            {
+                _previewToggle.interactable = enabled && !_previewGenerating;
+            }
+            if (_previewButton != null)
+            {
+                _previewButton.interactable = enabled && !_previewGenerating;
+            }
+            if (_enabledToggle != null)
+            {
+                _enabledToggle.interactable = !_previewGenerating;
+            }
+            if (_previewWindow != null)
+            {
+                bool visible = enabled && OpenWatersSettings.PreviewEnabled;
+                if (_previewWindow.gameObject.activeSelf != visible)
+                {
+                    _previewWindow.gameObject.SetActive(visible);
+                }
+            }
+        }
+
 
         private void AlignPreviewToggle()
         {
-            if (_previewToggle == null || _previewLabel == null)
+            AlignToggle(_previewToggle, _previewLabel);
+            AlignToggle(_enabledToggle, _enabledLabel);
+            AlignToggle(_mountainsToggle, _mountainsLabel);
+        }
+
+        private static void AlignToggle(Toggle toggle, TextMeshProUGUI label)
+        {
+            if (toggle == null || label == null)
             {
                 return;
             }
 
-            Graphic visual = _previewToggle.graphic != null
-                ? (Graphic)_previewToggle.graphic
-                : _previewToggle.targetGraphic;
+            Graphic visual = toggle.graphic != null
+                ? (Graphic)toggle.graphic
+                : toggle.targetGraphic;
             if (visual == null)
             {
                 return;
@@ -475,10 +576,10 @@ namespace OpenWaters
             Vector3[] corners = new Vector3[4];
             visual.rectTransform.GetWorldCorners(corners);
             float visualCenter = (corners[0].y + corners[2].y) * 0.5f;
-            _previewLabel.rectTransform.GetWorldCorners(corners);
+            label.rectTransform.GetWorldCorners(corners);
             float labelCenter = (corners[0].y + corners[2].y) * 0.5f;
 
-            Transform toggleTransform = _previewToggle.transform;
+            Transform toggleTransform = toggle.transform;
             Vector3 position = toggleTransform.position;
             toggleTransform.position = new Vector3(position.x, position.y + labelCenter - visualCenter, position.z);
         }

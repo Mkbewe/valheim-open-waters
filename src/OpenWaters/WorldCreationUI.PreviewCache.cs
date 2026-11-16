@@ -16,7 +16,7 @@ namespace OpenWaters
         private string _lastPreviewKey;
         private void UpdatePreviewCacheState()
         {
-            if (_previewGenerating || _previewImage == null || _previewTitle == null || _previewHint == null)
+            if (!OpenWatersSettings.Enabled || _previewGenerating || _previewImage == null || _previewTitle == null || _previewHint == null)
             {
                 return;
             }
@@ -46,7 +46,8 @@ namespace OpenWaters
 
         private static string GetPreviewKey(string seed)
         {
-            return $"{seed}|{(int)OpenWatersSettings.IslandAmount}|{OpenWatersSettings.WorldRadius}";
+            return $"{seed}|{(int)OpenWatersSettings.IslandAmount}|{OpenWatersSettings.WorldRadius}|" +
+                   $"{OpenWatersSettings.BiomeLimit}|{OpenWatersSettings.ExcludeMountains}";
         }
 
         private bool TryGetCachedPreview(string key, out PreviewCacheEntry entry)

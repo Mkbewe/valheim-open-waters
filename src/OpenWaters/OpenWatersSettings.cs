@@ -2,18 +2,17 @@ namespace OpenWaters
 {
     internal static class OpenWatersSettings
     {
-        public const float MinLandCoverage = 0.05f;
-        public const float MaxLandCoverage = 0.40f;
         public const int MinWorldRadius = 6000;
         public const int MaxWorldRadius = 10000;
+        public const int DefaultWorldRadius = 10000;
         public const int FewIslands = 0;
         public const int MediumIslands = 1;
         public const int VanillaIslandAmount = 2;
-        public const float FewTargetLandCoverage = 0.08f;
-        public const float MediumTargetLandCoverage = 0.15f;
+        public const float FewLandFraction = 0.27f;
+        public const float MediumLandFraction = 0.50f;
+        public const string PreviewWorldName = "OpenWatersPreview";
 
-        public static float LandCoverage = MediumTargetLandCoverage;
-        public static int WorldRadius = 10000;
+        public static int WorldRadius = DefaultWorldRadius;
         public static int IslandAmount = VanillaIslandAmount;
         public static int BiomeLimit;
         public static int StartBiomeLimit;
@@ -42,19 +41,19 @@ namespace OpenWaters
             }
         }
 
-        public static float TargetLandCoverage
+        public static float LandFraction
         {
             get
             {
                 if (IslandAmount == FewIslands)
                 {
-                    return FewTargetLandCoverage;
+                    return FewLandFraction;
                 }
                 if (IslandAmount == MediumIslands)
                 {
-                    return MediumTargetLandCoverage;
+                    return MediumLandFraction;
                 }
-                return 0f;
+                return 1f;
             }
         }
     }

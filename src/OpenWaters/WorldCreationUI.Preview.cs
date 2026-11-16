@@ -163,7 +163,7 @@ namespace OpenWaters
 
             try
             {
-                World previewWorld = new World("OpenWatersPreview", seed);
+                World previewWorld = new World(OpenWatersSettings.PreviewWorldName, seed);
                 WorldGenerator.Initialize(previewWorld);
                 texture = RenderPreview(out islands, out landPercent, out components);
             }
@@ -443,6 +443,16 @@ namespace OpenWaters
             if (_previewButton != null)
             {
                 _previewButton.interactable = !generating;
+            }
+            if (_slider != null)
+            {
+                _slider.interactable = !generating;
+            }
+
+            FejdStartup startup = FejdStartup.instance;
+            if (startup != null && startup.m_newWorldSeed != null)
+            {
+                startup.m_newWorldSeed.interactable = !generating;
             }
         }
 

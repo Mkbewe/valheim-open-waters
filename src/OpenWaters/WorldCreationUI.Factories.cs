@@ -8,7 +8,7 @@ namespace OpenWaters
     {
         private static Sprite _whiteSprite;
 
-        private static Button BuildButton(FejdStartup startup, Transform parent)
+        private static Button BuildButton(FejdStartup startup, Transform parent, string text = "Generate preview")
         {
             Button source = startup.m_newWorldDone;
             if (source == null)
@@ -53,7 +53,7 @@ namespace OpenWaters
             button.navigation = new Navigation { mode = Navigation.Mode.None };
 
             Color labelColor = labelSource != null ? labelSource.color : ValueColor;
-            TextMeshProUGUI label = CreateText(root, "Text", "Generate preview", labelSource, labelColor, 20f, TextAlignmentOptions.Center);
+            TextMeshProUGUI label = CreateText(root, "Text", text, labelSource, labelColor, 20f, TextAlignmentOptions.Center);
             SetAnchor(label.rectTransform, Center, Center, new Vector2(200f, 28f));
 
             OpenWatersPlugin.Log.LogInfo($"[UI] Built preview button from '{source.name}'.");

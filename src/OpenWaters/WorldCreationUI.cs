@@ -63,6 +63,7 @@ namespace OpenWaters
             RectTransform seed = startup.m_newWorldSeed.GetComponent<RectTransform>();
             Transform parent = FindCommonAncestor(seed.transform, startup.m_newWorldDone.transform) ?? startup.m_createWorldPanel.transform;
             ApplyPanelLayout(startup, parent as RectTransform);
+            CreateSeedRandomButton(startup, parent);
 
             _section = CreateContainer(parent, "OpenWaters_Section");
             _section.sizeDelta = new Vector2(seed.rect.width, 26f);
@@ -85,8 +86,47 @@ namespace OpenWaters
             OpenWatersPlugin.Log.LogInfo($"[UI] Created Open Waters section under '{parent.name}'.");
         }
 
-        private void CreateSliderRow(FejdStartup startup, Transform parent)
+        private void CreateSeedRandomButton(FejdStartup startup, Transform parent)
         {
+            const string objectName = "OpenWaters_SeedRandom";
+            if (parent.Find(objectName) != null)
+            {
+                return;
+            }
+
+            RectTransform seed = startup.m_newWorldSeed.GetComponent<RectTransform>();
+            const float buttonWidth = 90f;
+            const float gap = 8f;
+            float originalWidth = seed.rect.width;
+            float newWidth = Mathf.Max(200f, originalWidth - buttonWidth - gap);
+            float shift = (originalWidth - newWidth) * 0.5f;
+            seed.sizeDelta = new Vector2(newWidth, seed.sizeDelta.y);
+            seed.anchoredPosition -= new Vector2(shift, 0f);
+
+            Button button = BuildButton(startup, parent, "Random");
+            if (button == null)
+            {
+                return;
+            }
+
+            RectTransform rect = (RectTransform)button.transform;
+            rect.name = objectName;
+            SetAnchor(rect, Center, Center, new Vector2(buttonWidth, seed.rect.height));
+            rect.anchoredPosition = new Vector2(
+                seed.anchoredPosition.x + newWidth * 0.5f + gap + buttonWidth * 0.5f,
+                seed.anchoredPosition.y);
+
+            button.onClick.AddListener(() =>
+            {
+                FejdStartup instance = FejdStartup.instance;
+                if (instance != null && instance.m_newWorldSeed != null)
+                {
+                    instance.m_newWorldSeed.text = World.GenerateSeed();
+                }
+            });
+        }
+
+        private void CreateSliderRow(FejdStartup startup, Transform parent)        {
             TMP_Text titleSource = FindSourceLabel(startup);
             TMP_Text labelSource = FindText(startup, "Seed") ?? titleSource;
             int initial = Mathf.Clamp(OpenWatersSettings.IslandAmount, 0, IslandLabels.Length - 1);

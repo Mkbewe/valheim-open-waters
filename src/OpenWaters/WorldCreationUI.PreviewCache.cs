@@ -57,6 +57,11 @@ namespace OpenWaters
                 {
                     continue;
                 }
+                if (_previewCache[i].Texture == null)
+                {
+                    _previewCache.RemoveAt(i);
+                    break;
+                }
                 entry = _previewCache[i];
                 _previewCache.RemoveAt(i);
                 _previewCache.Add(entry);
@@ -68,6 +73,11 @@ namespace OpenWaters
 
         private void ShowCachedPreview(PreviewCacheEntry entry)
         {
+            if (entry.Texture == null)
+            {
+                ShowPreviewPlaceholder();
+                return;
+            }
             _previewImage.texture = entry.Texture;
             _previewImage.enabled = true;
             _previewTitle.text = $"Preview - {entry.Islands} islands";

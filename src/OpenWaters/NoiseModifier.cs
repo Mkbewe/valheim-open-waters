@@ -17,14 +17,7 @@ namespace OpenWaters
         private const float PeakProtectStart = 0.28f;
         private const float PeakProtectEnd = 0.45f;
         private const float MaxOffset = 0.6f;
-        private const float MediumFrequencyScale = 0.7f;
-        private const float FewFrequencyScale = 0.6f;
-        private const float MediumPeakProtection = 0.6f;
-        private const float FewPeakProtection = 0.2f;
-        private const float FewMountainCompressionStart = 0.34f;
-        private const float FewMountainCompressionFactor = 0.55f;
         private const float MountainThreshold = 0.4f;
-        private const float DetailDamping = 0.35f;
 
         private static World _world;
         private static float _offset0;
@@ -36,8 +29,12 @@ namespace OpenWaters
         public static float HeightOffset => _heightOffset;
 
         private static bool IsFew => OpenWatersSettings.IslandAmount == OpenWatersSettings.FewIslands;
-        private static float FrequencyScale => IsFew ? FewFrequencyScale : MediumFrequencyScale;
-        private static float PeakProtection => IsFew ? FewPeakProtection : MediumPeakProtection;
+        private static float FrequencyScale =>
+            IsFew ? OpenWatersSettings.FewFrequencyScale : OpenWatersSettings.MediumFrequencyScale;
+        private static float PeakProtection =>
+            IsFew ? OpenWatersSettings.FewPeakProtection : OpenWatersSettings.MediumPeakProtection;
+        private static float DetailDamping =>
+            IsFew ? OpenWatersSettings.FewDetailDamping : OpenWatersSettings.MediumDetailDamping;
 
         public static void SetWorld(World world)
         {
@@ -274,13 +271,19 @@ namespace OpenWaters
 
         private static float CompressMountains(float value)
         {
-            if (!IsFew || value <= FewMountainCompressionStart)
+            if (!IsFew)
             {
                 return value;
             }
 
-            return FewMountainCompressionStart +
-                   (value - FewMountainCompressionStart) * FewMountainCompressionFactor;
+            float start = OpenWatersSettings.FewMountainCompressionStart;
+            if (value <= start)
+            {
+                return value;
+            }
+
+            return start +
+                   (value - start) * OpenWatersSettings.FewMountainCompressionFactor;
         }
 
         private static float SmoothStep(float from, float to, float value)

@@ -420,7 +420,7 @@ namespace OpenWaters
                 return;
             }
 
-            if (!_layoutCaptured)
+            if (!_layoutCaptured || panel != _layoutPanel)
             {
                 _layoutParent = panel;
                 _layoutPanel = panel;
@@ -428,7 +428,10 @@ namespace OpenWaters
                 _basePanelPosition = panel.anchoredPosition;
                 _baseNamePosition = startup.m_newWorldName.GetComponent<RectTransform>().anchoredPosition;
                 _baseSeedPosition = startup.m_newWorldSeed.GetComponent<RectTransform>().anchoredPosition;
+                _seedRandomButton = null;
+                _seedRandomOffset = Vector2.zero;
                 _layoutCaptured = true;
+                OpenWatersPlugin.Log.LogInfo("[UI] Captured new New World panel layout.");
             }
 
             UpdatePanelLayout(startup, panel, OpenWatersSettings.Enabled);

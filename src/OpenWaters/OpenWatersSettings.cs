@@ -16,7 +16,7 @@ namespace OpenWaters
         public static int IslandAmount = VanillaIslandAmount;
         public static int BiomeLimit;
         public static int StartBiomeLimit;
-        public static bool ExcludeMountains = true;
+        public static bool ExcludeMountains = false;
         public static bool Enabled = true;
         public static bool PreviewEnabled;
 

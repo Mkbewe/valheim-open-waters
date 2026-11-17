@@ -129,7 +129,7 @@ namespace OpenWaters
             OpenWatersSettings.WorldRadius = OpenWatersSettings.DefaultWorldRadius;
             OpenWatersSettings.BiomeLimit = 0;
             OpenWatersSettings.StartBiomeLimit = 0;
-            OpenWatersSettings.ExcludeMountains = true;
+            OpenWatersSettings.ExcludeMountains = false;
         }
 
         private static bool TryReadSidecar(World world, out Snapshot snapshot)

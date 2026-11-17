@@ -11,7 +11,8 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static void Prefix(ZoneSystem __instance)
         {
-            if (!OpenWatersSettings.AffectsGeneration)
+            if (!OpenWatersSettings.AffectsGeneration ||
+                OpenWatersSettings.IslandAmount == OpenWatersSettings.VanillaIslandAmount)
             {
                 return;
             }

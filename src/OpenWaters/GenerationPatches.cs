@@ -42,13 +42,22 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static bool Prefix(float wx, float wy, bool menuTerrain, ref float __result)
         {
-            if (menuTerrain || !NoiseModifier.Active)
+            if (menuTerrain || !NoiseModifier.Active || !NoiseModifier.UsesGlobalNoise)
             {
                 return true;
             }
 
-            __result = NoiseModifier.Apply(wx, wy);
+            __result = NoiseModifier.ApplyGlobal(wx, wy);
             return false;
+        }
+
+        [HarmonyPostfix]
+        private static void Postfix(float wx, float wy, bool menuTerrain, ref float __result)
+        {
+            if (!menuTerrain && NoiseModifier.Active && !NoiseModifier.UsesGlobalNoise)
+            {
+                __result = NoiseModifier.ApplyStartIslandOnly(__result, wx, wy);
+            }
         }
     }
 }

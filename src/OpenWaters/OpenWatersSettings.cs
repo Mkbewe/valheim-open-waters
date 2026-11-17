@@ -41,7 +41,8 @@ namespace OpenWaters
         public static float FewMountainCompressionFactor =>
             Clamp(OpenWatersPlugin.FewMountainCompressionFactorConfig?.Value, 0.55f, 0f, 1f);
 
-        public static bool AffectsGeneration => Enabled && IslandAmount != VanillaIslandAmount;
+        public static bool AffectsGeneration => Enabled &&
+            (IslandAmount != VanillaIslandAmount || ExcludeMountains);
 
         public static string IslandAmountName
         {

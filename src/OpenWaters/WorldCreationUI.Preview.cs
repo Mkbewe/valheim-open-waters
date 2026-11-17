@@ -38,6 +38,10 @@ namespace OpenWaters
         private Toggle _enabledToggle;
         private TextMeshProUGUI _enabledLabel;
         private Button _previewButton;
+        private Button _biomeViewButton;
+        private TMP_Text _biomeViewLabel;
+        private bool _biomeView;
+        private PreviewCacheEntry _currentPreviewEntry;
         private bool _previewGenerating;
 
         private void CreatePreviewRow(FejdStartup startup, Transform parent)
@@ -104,13 +108,41 @@ namespace OpenWaters
             _previewButton = BuildButton(startup, _previewWindow);
             if (_previewButton != null)
             {
-                SetAnchor((RectTransform)_previewButton.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(220f, 36f));
-                ((RectTransform)_previewButton.transform).anchoredPosition = new Vector2(0f, 10f);
+                SetAnchor((RectTransform)_previewButton.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(200f, 36f));
+                ((RectTransform)_previewButton.transform).anchoredPosition = new Vector2(-54f, 10f);
                 _previewButton.onClick.AddListener(OnGeneratePreview);
+            }
+
+            _biomeViewButton = BuildButton(startup, _previewWindow, "Biomes");
+            if (_biomeViewButton != null)
+            {
+                SetAnchor((RectTransform)_biomeViewButton.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(100f, 36f));
+                ((RectTransform)_biomeViewButton.transform).anchoredPosition = new Vector2(104f, 10f);
+                _biomeViewButton.onClick.AddListener(OnToggleBiomeView);
+                _biomeViewButton.interactable = false;
+                _biomeViewLabel = _biomeViewButton.GetComponentInChildren<TMP_Text>(true);
+                if (_biomeViewLabel != null)
+                {
+                    _biomeViewLabel.rectTransform.sizeDelta = new Vector2(90f, 24f);
+                    _biomeViewLabel.fontSize = 18f;
+                }
             }
 
             _previewWindow.gameObject.SetActive(OpenWatersSettings.Enabled && OpenWatersSettings.PreviewEnabled);
             UpdateEnabledState();
+        }
+
+        private void OnToggleBiomeView()
+        {
+            _biomeView = !_biomeView;
+            if (_biomeViewLabel != null)
+            {
+                _biomeViewLabel.text = _biomeView ? "Land" : "Biomes";
+            }
+            if (_currentPreviewEntry != null)
+            {
+                ShowCachedPreview(_currentPreviewEntry);
+            }
         }
 
 
@@ -159,6 +191,7 @@ namespace OpenWaters
             yield return null;
 
             Texture2D texture = null;
+            Texture2D biomeTexture = null;
             int islands = 0;
             int components = 0;
             float landPercent = 0f;
@@ -168,7 +201,7 @@ namespace OpenWaters
             {
                 World previewWorld = new World(OpenWatersSettings.PreviewWorldName, seed);
                 WorldGenerator.Initialize(previewWorld);
-                texture = RenderPreview(out islands, out landPercent, out components);
+                texture = RenderPreview(out islands, out landPercent, out components, out biomeTexture);
             }
             catch (Exception exception)
             {
@@ -189,6 +222,10 @@ namespace OpenWaters
 
             if (texture == null)
             {
+                if (biomeTexture != null)
+                {
+                    UnityEngine.Object.Destroy(biomeTexture);
+                }
                 _lastPreviewKey = key;
                 if (_previewTitle != null)
                 {
@@ -206,6 +243,7 @@ namespace OpenWaters
             {
                 Key = key,
                 Texture = texture,
+                BiomeTexture = biomeTexture,
                 Islands = islands
             };
             StoreCachedPreview(entry);
@@ -216,11 +254,12 @@ namespace OpenWaters
             OpenWatersPlugin.Log.LogInfo($"[Preview] Seed='{seed}', islands={islands}, components={components}, land={landPercent:P1}, time={elapsedMs} ms.");
         }
 
-        private static Texture2D RenderPreview(out int islands, out float landPercent, out int components)
+        private static Texture2D RenderPreview(out int islands, out float landPercent, out int components, out Texture2D biomeTexture)
         {
             int size = PreviewSamples;
             float radius = OpenWatersSettings.WorldRadius + PreviewWaterEdge;
             Color32[] pixels = new Color32[size * size];
+            Color32[] biomePixels = new Color32[size * size];
             bool[] land = new bool[size * size];
             int landCells = 0;
             int insideCells = 0;
@@ -235,15 +274,25 @@ namespace OpenWaters
                     float wx = -radius + (x + 0.5f) * (2f * radius / size);
                     if (wx * wx + wy * wy > radius * radius)
                     {
-                        pixels[index] = new Color32(4, 8, 16, 255);
+                        Color32 outside = new Color32(4, 8, 16, 255);
+                        pixels[index] = outside;
+                        biomePixels[index] = outside;
                         continue;
                     }
 
                     insideCells++;
                     bool isLand = WorldGenerator.instance.GetHeight(wx, wy) > 30f;
+                    Color32 water = new Color32(38, 82, 128, 255);
                     pixels[index] = isLand
                         ? new Color32(112, 170, 84, 255)
-                        : new Color32(38, 82, 128, 255);
+                        : water;
+
+                    Heightmap.Biome biome = isLand
+                        ? WorldGenerator.instance.GetBiome(wx, wy)
+                        : Heightmap.Biome.Ocean;
+                    biomePixels[index] = isLand && biome != Heightmap.Biome.Ocean
+                        ? GetBiomeColor(biome)
+                        : water;
 
                     if (isLand)
                     {
@@ -257,9 +306,10 @@ namespace OpenWaters
             float cellSize = 2f * radius / size;
             float cellArea = cellSize * cellSize;
             int minIslandCells = Mathf.Max(1, Mathf.CeilToInt(PreviewMinIslandAreaKm2 * 1000000f / cellArea));
-            islands = CountIslands(land, size, minIslandCells, cellSize, pixels, out components);
+            islands = CountIslands(land, size, minIslandCells, cellSize, pixels, biomePixels, out components);
 
             int center = size / 2;
+            Color32 marker = new Color32(255, 120, 20, 255);
             for (int dy = -2; dy <= 2; dy++)
             {
                 for (int dx = -2; dx <= 2; dx++)
@@ -272,12 +322,20 @@ namespace OpenWaters
                     int py = center + dy;
                     if (px >= 0 && px < size && py >= 0 && py < size)
                     {
-                        pixels[py * size + px] = new Color32(255, 120, 20, 255);
+                        int index = py * size + px;
+                        pixels[index] = marker;
+                        biomePixels[index] = marker;
                     }
                 }
             }
 
-            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            biomeTexture = CreatePreviewTexture(biomePixels);
+            return CreatePreviewTexture(pixels);
+        }
+
+        private static Texture2D CreatePreviewTexture(Color32[] pixels)
+        {
+            Texture2D texture = new Texture2D(PreviewSamples, PreviewSamples, TextureFormat.RGBA32, false);
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
             texture.wrapMode = TextureWrapMode.Clamp;
@@ -285,7 +343,30 @@ namespace OpenWaters
             return texture;
         }
 
-        private static int CountIslands(bool[] land, int size, int minCells, float cellSize, Color32[] pixels, out int componentCount)
+        private static Color32 GetBiomeColor(Heightmap.Biome biome)
+        {
+            switch (biome)
+            {
+                case Heightmap.Biome.BlackForest:
+                    return new Color32(44, 96, 48, 255);
+                case Heightmap.Biome.Swamp:
+                    return new Color32(126, 138, 84, 255);
+                case Heightmap.Biome.Mountain:
+                    return new Color32(198, 202, 210, 255);
+                case Heightmap.Biome.Plains:
+                    return new Color32(190, 174, 75, 255);
+                case Heightmap.Biome.Mistlands:
+                    return new Color32(118, 104, 132, 255);
+                case Heightmap.Biome.AshLands:
+                    return new Color32(142, 54, 38, 255);
+                case Heightmap.Biome.DeepNorth:
+                    return new Color32(174, 204, 220, 255);
+                default:
+                    return new Color32(112, 170, 84, 255);
+            }
+        }
+
+        private static int CountIslands(bool[] land, int size, int minCells, float cellSize, Color32[] pixels, Color32[] biomePixels, out int componentCount)
         {
             bool[] visited = new bool[land.Length];
             Stack<int> stack = new Stack<int>();
@@ -400,7 +481,9 @@ namespace OpenWaters
                 List<int> cells = components[i].Cells;
                 for (int cell = 0; cell < cells.Count; cell++)
                 {
-                    pixels[cells[cell]] = new Color32(72, 100, 66, 255);
+                    Color32 hidden = new Color32(72, 100, 66, 255);
+                    pixels[cells[cell]] = hidden;
+                    biomePixels[cells[cell]] = hidden;
                 }
             }
 
@@ -466,6 +549,10 @@ namespace OpenWaters
             if (_enabledToggle != null)
             {
                 _enabledToggle.interactable = !generating;
+            }
+            if (_biomeViewButton != null)
+            {
+                _biomeViewButton.interactable = OpenWatersSettings.Enabled && !generating && _currentPreviewEntry != null;
             }
 
             FejdStartup startup = FejdStartup.instance;
@@ -535,6 +622,10 @@ namespace OpenWaters
             if (_previewButton != null)
             {
                 _previewButton.interactable = enabled && !_previewGenerating;
+            }
+            if (_biomeViewButton != null)
+            {
+                _biomeViewButton.interactable = enabled && !_previewGenerating && _currentPreviewEntry != null;
             }
             if (_enabledToggle != null)
             {

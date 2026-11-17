@@ -9,6 +9,7 @@ namespace OpenWaters
         {
             public string Key;
             public Texture2D Texture;
+            public Texture2D BiomeTexture;
             public int Islands;
         }
 
@@ -79,18 +80,32 @@ namespace OpenWaters
                 ShowPreviewPlaceholder();
                 return;
             }
-            _previewImage.texture = entry.Texture;
+
+            _currentPreviewEntry = entry;
+            Texture2D texture = _biomeView && entry.BiomeTexture != null ? entry.BiomeTexture : entry.Texture;
+            _previewImage.texture = texture;
             _previewImage.enabled = true;
-            _previewTitle.text = $"Preview - {entry.Islands} islands";
+            _previewTitle.text = _biomeView
+                ? $"Biome preview - {entry.Islands} islands"
+                : $"Preview - {entry.Islands} islands";
             _previewHint.gameObject.SetActive(false);
+            if (_biomeViewButton != null)
+            {
+                _biomeViewButton.interactable = OpenWatersSettings.Enabled && !_previewGenerating;
+            }
         }
 
         private void ShowPreviewPlaceholder()
         {
+            _currentPreviewEntry = null;
             _previewImage.enabled = false;
-            _previewTitle.text = "Map preview";
+            _previewTitle.text = _biomeView ? "Biome preview" : "Map preview";
             _previewHint.gameObject.SetActive(true);
             _previewHint.text = "Preview will appear here";
+            if (_biomeViewButton != null)
+            {
+                _biomeViewButton.interactable = false;
+            }
         }
 
         private void StoreCachedPreview(PreviewCacheEntry entry)
@@ -100,9 +115,15 @@ namespace OpenWaters
             {
                 PreviewCacheEntry oldest = _previewCache[0];
                 _previewCache.RemoveAt(0);
-                if (_previewImage == null || _previewImage.texture != oldest.Texture)
+                if (oldest.Texture != null &&
+                    (_previewImage == null || _previewImage.texture != oldest.Texture))
                 {
                     UnityEngine.Object.Destroy(oldest.Texture);
+                }
+                if (oldest.BiomeTexture != null &&
+                    (_previewImage == null || _previewImage.texture != oldest.BiomeTexture))
+                {
+                    UnityEngine.Object.Destroy(oldest.BiomeTexture);
                 }
             }
         }

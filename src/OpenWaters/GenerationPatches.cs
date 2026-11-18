@@ -36,6 +36,33 @@ namespace OpenWaters
         }
     }
 
+    [HarmonyPatch(typeof(WorldGenerator), nameof(WorldGenerator.GetBiome),
+        new Type[] { typeof(float), typeof(float), typeof(float), typeof(bool) })]
+    internal static class WorldGeneratorGetBiomePatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix(float wx, float wy, ref Heightmap.Biome __result)
+        {
+            if (IslandAnalysis.Analyzing)
+            {
+                return;
+            }
+
+            if (__result == Heightmap.Biome.Ocean ||
+                __result == Heightmap.Biome.AshLands ||
+                __result == Heightmap.Biome.DeepNorth ||
+                __result == Heightmap.Biome.Mountain)
+            {
+                return;
+            }
+
+            if (NoiseModifier.TryGetStartBiomeOverride(wx, wy, __result, out Heightmap.Biome biome))
+            {
+                __result = biome;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(WorldGenerator), "GetBaseHeight")]
     internal static class WorldGeneratorGetBaseHeightPatch
     {

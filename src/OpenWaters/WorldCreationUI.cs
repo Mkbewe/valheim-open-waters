@@ -188,7 +188,7 @@ namespace OpenWaters
         {
             TMP_Text titleSource = FindSourceLabel(startup);
             TMP_Text labelSource = FindText(startup, "Seed") ?? titleSource;
-            int initial = BiomeLimitToIndex(OpenWatersSettings.BiomeLimit);
+            int initial = BiomeLimitToIndex(OpenWatersSettings.StartBiomeLimit);
 
             _biomeRow = CreateContainer(parent, "OpenWaters_BiomeRow");
             _biomeRow.sizeDelta = new Vector2(400f, SliderRowHeight);
@@ -234,7 +234,7 @@ namespace OpenWaters
         private void OnBiomeLimitChanged(float value)
         {
             int index = Mathf.Clamp(Mathf.RoundToInt(value), 0, BiomeLimitLabels.Length - 1);
-            OpenWatersSettings.BiomeLimit = index == 2 ? 0 : index + 1;
+            OpenWatersSettings.StartBiomeLimit = index == 2 ? 0 : index + 1;
             if (_biomeValueLabel != null)
             {
                 _biomeValueLabel.text = BiomeLimitLabels[index];

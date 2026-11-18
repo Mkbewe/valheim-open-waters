@@ -10,10 +10,10 @@ namespace OpenWaters
     internal sealed partial class WorldCreationUI
     {
         private const float PreviewOffset = 277f;
-        private const float PreviewWindowWidth = 360f;
-        private const float PreviewWindowHeight = 420f;
+        private const float PreviewWindowWidth = 440f;
+        private const float PreviewWindowHeight = 500f;
         private const float PreviewWindowMargin = 24f;
-        private const float PreviewImageSize = 320f;
+        private const float PreviewImageSize = 400f;
         private const int PreviewSamples = 512;
         private const float PreviewWaterEdge = 500f;
         private const float PreviewMinIslandAreaKm2 = 0.05f;
@@ -171,6 +171,15 @@ namespace OpenWaters
             StartCoroutine(GeneratePreviewCoroutine(seed, key));
         }
 
+        private sealed class PreviewResult
+        {
+            public Texture2D Texture;
+            public Texture2D BiomeTexture;
+            public int Islands;
+            public int Components;
+            public float LandPercent;
+        }
+
         private IEnumerator GeneratePreviewCoroutine(string seed, string key)
         {
             SetPreviewGenerating(true);
@@ -190,41 +199,107 @@ namespace OpenWaters
 
             yield return null;
 
-            Texture2D texture = null;
-            Texture2D biomeTexture = null;
-            int islands = 0;
-            int components = 0;
-            float landPercent = 0f;
             long started = DateTime.UtcNow.Ticks;
-
+            PreviewResult result = new PreviewResult();
+            bool initialized = false;
             try
             {
-                World previewWorld = new World(OpenWatersSettings.PreviewWorldName, seed);
-                WorldGenerator.Initialize(previewWorld);
-                texture = RenderPreview(out islands, out landPercent, out components, out biomeTexture);
+                IslandAnalysis.DeferAnalysis = true;
+                try
+                {
+                    WorldGenerator.Initialize(new World(OpenWatersSettings.PreviewWorldName, seed));
+                    initialized = true;
+                }
+                finally
+                {
+                    IslandAnalysis.DeferAnalysis = false;
+                }
             }
             catch (Exception exception)
             {
-                OpenWatersPlugin.Log.LogError($"[Preview] Generation failed: {exception}");
-            }
-            finally
-            {
-                try
-                {
-                    WorldGenerator.Initialize(World.GetMenuWorld());
-                }
-                catch (Exception exception)
-                {
-                    OpenWatersPlugin.Log.LogError($"[Preview] Failed to restore menu generator: {exception}");
-                }
-                SetPreviewGenerating(false);
+                OpenWatersPlugin.Log.LogError($"[Preview] World generation failed: {exception}");
             }
 
+            if (initialized)
+            {
+                yield return null;
+
+                if (OpenWatersSettings.ExcludeMountains || OpenWatersSettings.StartBiomeLimit != 0)
+                {
+                    bool begun = false;
+                    try
+                    {
+                        begun = IslandAnalysis.Begin(
+                            WorldGenerator.instance, OpenWatersSettings.WorldRadius + PreviewWaterEdge);
+                    }
+                    catch (Exception exception)
+                    {
+                        OpenWatersPlugin.Log.LogError($"[Preview] Island analysis failed: {exception}");
+                    }
+
+                    if (begun)
+                    {
+                        while (true)
+                        {
+                            bool more = false;
+                            try
+                            {
+                                more = IslandAnalysis.SampleRows(16);
+                            }
+                            catch (Exception exception)
+                            {
+                                OpenWatersPlugin.Log.LogError($"[Preview] Island analysis failed: {exception}");
+                                IslandAnalysis.Clear();
+                                break;
+                            }
+                            if (!more)
+                            {
+                                IslandAnalysis.Finish();
+                                break;
+                            }
+                            yield return null;
+                        }
+                    }
+                    yield return null;
+                }
+
+                IEnumerator render = RenderPreviewRoutine(result);
+                while (true)
+                {
+                    bool moved = false;
+                    try
+                    {
+                        moved = render.MoveNext();
+                    }
+                    catch (Exception exception)
+                    {
+                        OpenWatersPlugin.Log.LogError($"[Preview] Rendering failed: {exception}");
+                        break;
+                    }
+                    if (!moved)
+                    {
+                        break;
+                    }
+                    yield return null;
+                }
+            }
+
+            try
+            {
+                WorldGenerator.Initialize(World.GetMenuWorld());
+            }
+            catch (Exception exception)
+            {
+                OpenWatersPlugin.Log.LogError($"[Preview] Failed to restore menu generator: {exception}");
+            }
+            SetPreviewGenerating(false);
+
+            Texture2D texture = result.Texture;
             if (texture == null)
             {
-                if (biomeTexture != null)
+                if (result.BiomeTexture != null)
                 {
-                    UnityEngine.Object.Destroy(biomeTexture);
+                    UnityEngine.Object.Destroy(result.BiomeTexture);
                 }
                 _lastPreviewKey = key;
                 if (_previewTitle != null)
@@ -243,70 +318,100 @@ namespace OpenWaters
             {
                 Key = key,
                 Texture = texture,
-                BiomeTexture = biomeTexture,
-                Islands = islands
+                BiomeTexture = result.BiomeTexture,
+                Islands = result.Islands
             };
             StoreCachedPreview(entry);
             _lastPreviewKey = key;
             ShowCachedPreview(entry);
 
             long elapsedMs = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
-            OpenWatersPlugin.Log.LogInfo($"[Preview] Seed='{seed}', islands={islands}, components={components}, land={landPercent:P1}, time={elapsedMs} ms.");
+            OpenWatersPlugin.Log.LogInfo(
+                $"[Preview] Seed='{seed}', islands={result.Islands}, components={result.Components}, " +
+                $"land={result.LandPercent:P1}, time={elapsedMs} ms.");
         }
 
-        private static Texture2D RenderPreview(out int islands, out float landPercent, out int components, out Texture2D biomeTexture)
+        private static IEnumerator RenderPreviewRoutine(PreviewResult result)
         {
             int size = PreviewSamples;
             float radius = OpenWatersSettings.WorldRadius + PreviewWaterEdge;
+            float cellSize = 2f * radius / size;
             Color32[] pixels = new Color32[size * size];
             Color32[] biomePixels = new Color32[size * size];
             bool[] land = new bool[size * size];
+            bool[] swamp = new bool[size * size];
             int landCells = 0;
             int insideCells = 0;
-            components = 0;
 
+            for (int row = 0; row < size; row += 16)
+            {
+                int end = Mathf.Min(row + 16, size);
+                for (int y = row; y < end; y++)
+                {
+                    float wy = -radius + (y + 0.5f) * cellSize;
+                    for (int x = 0; x < size; x++)
+                    {
+                        int index = y * size + x;
+                        float wx = -radius + (x + 0.5f) * cellSize;
+                        if (wx * wx + wy * wy > radius * radius)
+                        {
+                            Color32 outside = new Color32(4, 8, 16, 255);
+                            pixels[index] = outside;
+                            biomePixels[index] = outside;
+                            continue;
+                        }
+
+                        insideCells++;
+                        bool isLand = WorldGenerator.instance.GetHeight(wx, wy) > 30f;
+                        Color32 water = new Color32(30, 70, 122, 255);
+                        pixels[index] = isLand
+                            ? new Color32(116, 178, 94, 255)
+                            : water;
+
+                        Heightmap.Biome biome = WorldGenerator.instance.GetBiome(wx, wy);
+                        bool isSwamp = biome == Heightmap.Biome.Swamp;
+                        swamp[index] = isSwamp;
+                        if (isSwamp)
+                        {
+                            biomePixels[index] = GetBiomeColor(biome);
+                        }
+                        else if (isLand && biome != Heightmap.Biome.Ocean)
+                        {
+                            biomePixels[index] = GetBiomeColor(biome);
+                        }
+                        else
+                        {
+                            biomePixels[index] = water;
+                        }
+
+                        if (isLand)
+                        {
+                            land[index] = true;
+                            landCells++;
+                        }
+                    }
+                }
+                yield return null;
+            }
+
+            Color32 swampWater = new Color32(88, 116, 92, 255);
             for (int y = 0; y < size; y++)
             {
-                float wy = -radius + (y + 0.5f) * (2f * radius / size);
                 for (int x = 0; x < size; x++)
                 {
                     int index = y * size + x;
-                    float wx = -radius + (x + 0.5f) * (2f * radius / size);
-                    if (wx * wx + wy * wy > radius * radius)
+                    if (land[index] || swamp[index] || !HasSwampNeighbor(swamp, size, x, y))
                     {
-                        Color32 outside = new Color32(4, 8, 16, 255);
-                        pixels[index] = outside;
-                        biomePixels[index] = outside;
                         continue;
                     }
-
-                    insideCells++;
-                    bool isLand = WorldGenerator.instance.GetHeight(wx, wy) > 30f;
-                    Color32 water = new Color32(38, 82, 128, 255);
-                    pixels[index] = isLand
-                        ? new Color32(112, 170, 84, 255)
-                        : water;
-
-                    Heightmap.Biome biome = isLand
-                        ? WorldGenerator.instance.GetBiome(wx, wy)
-                        : Heightmap.Biome.Ocean;
-                    biomePixels[index] = isLand && biome != Heightmap.Biome.Ocean
-                        ? GetBiomeColor(biome)
-                        : water;
-
-                    if (isLand)
-                    {
-                        land[index] = true;
-                        landCells++;
-                    }
+                    biomePixels[index] = swampWater;
                 }
             }
 
-            landPercent = insideCells > 0 ? (float)landCells / insideCells : 0f;
-            float cellSize = 2f * radius / size;
+            result.LandPercent = insideCells > 0 ? (float)landCells / insideCells : 0f;
             float cellArea = cellSize * cellSize;
             int minIslandCells = Mathf.Max(1, Mathf.CeilToInt(PreviewMinIslandAreaKm2 * 1000000f / cellArea));
-            islands = CountIslands(land, size, minIslandCells, cellSize, pixels, biomePixels, out components);
+            result.Islands = CountIslands(land, size, minIslandCells, cellSize, pixels, biomePixels, out result.Components);
 
             int center = size / 2;
             Color32 marker = new Color32(255, 120, 20, 255);
@@ -329,8 +434,8 @@ namespace OpenWaters
                 }
             }
 
-            biomeTexture = CreatePreviewTexture(biomePixels);
-            return CreatePreviewTexture(pixels);
+            result.BiomeTexture = CreatePreviewTexture(biomePixels);
+            result.Texture = CreatePreviewTexture(pixels);
         }
 
         private static Texture2D CreatePreviewTexture(Color32[] pixels)
@@ -348,22 +453,47 @@ namespace OpenWaters
             switch (biome)
             {
                 case Heightmap.Biome.BlackForest:
-                    return new Color32(44, 96, 48, 255);
+                    return new Color32(36, 122, 74, 255);
                 case Heightmap.Biome.Swamp:
-                    return new Color32(126, 138, 84, 255);
+                    return new Color32(160, 142, 78, 255);
                 case Heightmap.Biome.Mountain:
                     return new Color32(198, 202, 210, 255);
                 case Heightmap.Biome.Plains:
-                    return new Color32(190, 174, 75, 255);
+                    return new Color32(210, 186, 84, 255);
                 case Heightmap.Biome.Mistlands:
-                    return new Color32(118, 104, 132, 255);
+                    return new Color32(132, 108, 154, 255);
                 case Heightmap.Biome.AshLands:
                     return new Color32(142, 54, 38, 255);
                 case Heightmap.Biome.DeepNorth:
                     return new Color32(174, 204, 220, 255);
                 default:
-                    return new Color32(112, 170, 84, 255);
+                    return new Color32(116, 178, 94, 255);
             }
+        }
+
+        private static bool HasSwampNeighbor(bool[] swamp, int size, int x, int y)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+                    int nx = x + dx;
+                    int ny = y + dy;
+                    if (nx < 0 || nx >= size || ny < 0 || ny >= size)
+                    {
+                        continue;
+                    }
+                    if (swamp[ny * size + nx])
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private static int CountIslands(bool[] land, int size, int minCells, float cellSize, Color32[] pixels, Color32[] biomePixels, out int componentCount)

@@ -1,53 +1,89 @@
 # Open Waters
 
-A Valheim mod that changes world generation: **fewer islands, more open ocean**, with natural coastlines. It also adds a preferences panel on the world creation screen (land density, world size, per-island biome limit, map preview).
+Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases open ocean. It keeps vanilla coastlines by lowering terrain instead of removing land.
 
-## Status
+## Facts
 
-- Stage: **early development**. The project skeleton (BepInEx plugin, hello world) is in place; world-generation code is not implemented yet.
-- Decisions date: 2026-11-14
-- Name: **Open Waters**
-- Project directory: `D:\Projekty\valheim-open-waters`
-- DLL / assembly / namespace: `OpenWaters`
+- Version: `0.1.0`
 - Plugin GUID: `valheim.openwaters`
-- Target mode: multiplayer LAN / dedicated server (mod on the server and all clients)
-- Code: original (no copying from other mods); license **MIT**
+- Assembly / namespace: `OpenWaters`
+- Target: `netstandard2.1`
+- Game: Valheim 1.0.21, BepInEx 5.4.x
+- License: MIT
+- Distribution: not published
 
-## Documentation
+## Features
 
-> The documents are currently written in Polish.
+### Generation
 
-- [`docs/01-research.md`](docs/01-research.md) — environment, modding stack, analyzed mods, links.
-- [`docs/02-world-generation.md`](docs/02-world-generation.md) — how the Valheim 1.0.21 world generator works (decompiled).
-- [`docs/03-design.md`](docs/03-design.md) — agreed design (noise-based land density, per-island biome limit), UI, synchronization.
-- [`docs/04-next-steps.md`](docs/04-next-steps.md) — open decisions, implementation plan, test checklists.
-- [`docs/05-licensing.md`](docs/05-licensing.md) — MIT license, credits, rules for using other mods.
+- Island presets: `Few`, `Medium`, `Vanilla` (default).
+- Few and Medium re-implement the vanilla noise stack with configurable frequency, detail damping, peak protection and a binary-searched height offset. Defaults: Few `0.27`, Medium `0.50` of vanilla land.
+- Few compresses high terrain with `MountainCompressionStart` and `MountainCompressionFactor`.
+- `Vanilla` changes nothing unless `Remove mountains` or `Max biomes` is set.
+- Dragonqueen altar minimum altitude is 40 m when Few or Medium is active.
 
-## Key decisions
+### Starting island
 
-- We do not rewrite the whole generator. We keep vanilla and modify `GetBaseHeight` (land density) and `GetBiome` (biome limit).
-- Land density is controlled by noise: lowering terrain / a continental mask makes islands disappear naturally underwater — no discrete island removal.
-- Per-island biome limit: unlimited / max 1 / max 2 / max 3; a separate limit for the starting island; a checkbox excluding mountains from the count (later version).
-- First version changes **only the number of islands**; the default **Vanilla** setting leaves world generation completely untouched.
-- Initial island presets: **Few ≈ 8% land**, **Medium ≈ 15% land**, **Vanilla = no changes** (targets to be tuned after testing).
-- Excess biomes are overwritten (biome forcing) without removing islands; polar biomes and progression are protected (later version).
-- The player gets sliders for land density 5–40% and world size, plus biome-limit settings.
-- Settings are per world and synchronized from the server to clients.
-- The preferences panel is shown on the world creation screen, with a map preview and warnings.
-- Code is written from scratch; EWS and Better Continents are used only as references (no copying).
+- `IslandAnalysis` samples a 1024² grid using `GetHeight > 30`, builds connected components and records area, centre, bounds and biome histograms.
+- The starting island is the component at world centre.
+- `Remove mountains` (default off): suppresses heights `0.34`–`0.39` on the starting island; also active with Vanilla.
+- `Max biomes` (default `Vanilla`): `1` sets the whole starting island to Meadows; `2` keeps native Meadows/BlackForest, keeps a 250 m spawn safe radius and maps other biomes to Meadows/BlackForest. Mountains, Ocean, AshLands and Deep North are skipped.
+
+### New World UI and preview
+
+- Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
+- `Generate preview` renders a 400×400 map from 512² samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
+- Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
+- New-world settings are captured on creation and saved as `OpenWaters.settings` in the world save directory. Existing worlds reuse the sidecar; without one the preset is Vanilla.
+
+## Constraints
+
+- World size is fixed; `WorldRadius` is used only for analysis and preview sampling.
+- `BiomeLimit` is stored in the sidecar but not applied.
+- Settings are local; there is no server-to-client synchronization.
+- Calibration has no disk cache; only preview textures are cached.
+
+## Install
+
+1. Install BepInExPack Valheim.
+2. Copy `OpenWaters.dll` to `<VALHEIM_DIR>/BepInEx/plugins/OpenWaters/`.
+3. Set the Open Waters options on the New World screen.
+
+## Build
+
+The SDK is under `~/.dotnet`; the game directory is set in `Directory.Build.props` (override with `-p:ValheimDir=...`). A successful build copies the DLL to `BepInEx/plugins/OpenWaters/`:
+
+```powershell
+& "$env:USERPROFILE\.dotnet\dotnet.exe" build OpenWaters.sln -c Debug
+```
+
+Use `-p:SkipPluginCopy=true` when the game is running and the DLL is locked.
+
+## Configuration
+
+`BepInEx/config/valheim.openwaters.cfg`:
+
+| Section | Key | Default |
+| --- | --- | --- |
+| General | `Enabled` | `true` |
+| Few | `LandFraction` | `0.27` |
+| Few | `FrequencyScale` | `0.60` |
+| Few | `PeakProtection` | `0.20` |
+| Few | `DetailDamping` | `0.35` |
+| Few | `MountainCompressionStart` / `MountainCompressionFactor` | `0.34` / `0.55` |
+| Medium | `LandFraction` | `0.50` |
+| Medium | `FrequencyScale` | `0.70` |
+| Medium | `PeakProtection` | `0.60` |
+| Medium | `DetailDamping` | `0.35` |
+
+`LandFraction` is relative to vanilla land, not a percentage of the world.
 
 ## Development
 
-Build (the output DLL is copied to `BepInEx\plugins\OpenWaters\`):
+Commit messages follow Conventional Commits (lowercase type/scope/subject, header ≤ 72 characters); Husky `commit-msg` enforces it. Run `npm install` once after cloning. Pull request titles are checked by `.github/workflows/pr-title-check.yml`.
 
-```powershell
-dotnet build OpenWaters.sln -c Debug
-```
-
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (lowercase type/scope/subject, header max 72 characters) and are checked by a Husky `commit-msg` hook. Run `npm install` once after cloning to enable the hook.
+Remaining work: [`docs/TODO.md`](docs/TODO.md).
 
 ## License
 
-Open Waters is licensed under the MIT License. See [LICENSE](LICENSE) for the full text.
-
-Third-party credits and runtime dependencies are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+MIT — see [LICENSE](LICENSE). Third-party credits and runtime dependencies are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

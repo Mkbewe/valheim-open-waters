@@ -48,7 +48,8 @@ namespace OpenWaters
         private static string GetPreviewKey(string seed)
         {
             return $"{seed}|{(int)OpenWatersSettings.IslandAmount}|{OpenWatersSettings.WorldRadius}|" +
-                   $"{OpenWatersSettings.BiomeLimit}|{OpenWatersSettings.ExcludeMountains}";
+                   $"{OpenWatersSettings.BiomeLimit}|{OpenWatersSettings.StartBiomeLimit}|" +
+                   $"{OpenWatersSettings.ExcludeMountains}";
         }
 
         private bool TryGetCachedPreview(string key, out PreviewCacheEntry entry)
@@ -75,17 +76,24 @@ namespace OpenWaters
 
         private void ShowCachedPreview(PreviewCacheEntry entry)
         {
-            if (entry.Texture == null)
+            if (entry == null || entry.Texture == null)
+            {
+                ShowPreviewPlaceholder();
+                return;
+            }
+
+            bool showBiome = _biomeView && entry.BiomeTexture != null;
+            Texture2D texture = showBiome ? entry.BiomeTexture : entry.Texture;
+            if (texture == null)
             {
                 ShowPreviewPlaceholder();
                 return;
             }
 
             _currentPreviewEntry = entry;
-            Texture2D texture = _biomeView && entry.BiomeTexture != null ? entry.BiomeTexture : entry.Texture;
             _previewImage.texture = texture;
             _previewImage.enabled = true;
-            _previewTitle.text = _biomeView
+            _previewTitle.text = showBiome
                 ? $"Biome preview - {entry.Islands} islands"
                 : $"Preview - {entry.Islands} islands";
             _previewHint.gameObject.SetActive(false);
@@ -113,19 +121,44 @@ namespace OpenWaters
             _previewCache.Add(entry);
             while (_previewCache.Count > 8)
             {
-                PreviewCacheEntry oldest = _previewCache[0];
-                _previewCache.RemoveAt(0);
-                if (oldest.Texture != null &&
-                    (_previewImage == null || _previewImage.texture != oldest.Texture))
+                int evictIndex = -1;
+                for (int i = 0; i < _previewCache.Count; i++)
                 {
-                    UnityEngine.Object.Destroy(oldest.Texture);
+                    if (_previewCache[i] != _currentPreviewEntry)
+                    {
+                        evictIndex = i;
+                        break;
+                    }
                 }
-                if (oldest.BiomeTexture != null &&
-                    (_previewImage == null || _previewImage.texture != oldest.BiomeTexture))
+                if (evictIndex < 0)
                 {
-                    UnityEngine.Object.Destroy(oldest.BiomeTexture);
+                    break;
                 }
+
+                PreviewCacheEntry oldest = _previewCache[evictIndex];
+                _previewCache.RemoveAt(evictIndex);
+                DestroyTextureIfUnused(oldest.Texture);
+                DestroyTextureIfUnused(oldest.BiomeTexture);
             }
+        }
+
+        private void DestroyTextureIfUnused(Texture2D texture)
+        {
+            if (texture == null)
+            {
+                return;
+            }
+            if (_previewImage != null && _previewImage.texture == texture)
+            {
+                return;
+            }
+            if (_currentPreviewEntry != null &&
+                (_currentPreviewEntry.Texture == texture ||
+                 _currentPreviewEntry.BiomeTexture == texture))
+            {
+                return;
+            }
+            UnityEngine.Object.Destroy(texture);
         }
 
     }

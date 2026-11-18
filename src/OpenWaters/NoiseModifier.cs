@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -22,6 +21,7 @@ namespace OpenWaters
         private const float StartMountainSuppressStart = 0.34f;
         private const float StartMountainSuppressFactor = 0.35f;
         private const float StartMountainCap = 0.39f;
+        private const float StartSafeRadius = 250f;
 
         private static World _world;
         private static float _offset0;
@@ -29,10 +29,6 @@ namespace OpenWaters
         private static float _minMountainDistance = 1000f;
         private static float _heightOffset;
         private static bool _useGlobalNoise;
-        private static bool[] _startIsland;
-        private static int _startIslandSize;
-        private static float _startIslandRadius;
-        private static float _startIslandCellSize;
 
         public static bool Active { get; private set; }
         public static bool UsesGlobalNoise => _useGlobalNoise;
@@ -52,7 +48,7 @@ namespace OpenWaters
             Active = false;
             _heightOffset = 0f;
             _useGlobalNoise = false;
-            _startIsland = null;
+            IslandAnalysis.Clear();
         }
 
         public static void Cancel()
@@ -60,7 +56,7 @@ namespace OpenWaters
             Active = false;
             _heightOffset = 0f;
             _useGlobalNoise = false;
-            _startIsland = null;
+            IslandAnalysis.Clear();
         }
 
         public static void Build(WorldGenerator generator)
@@ -116,16 +112,18 @@ namespace OpenWaters
             if (!_useGlobalNoise)
             {
                 _heightOffset = 0f;
-                if (!OpenWatersSettings.ExcludeMountains)
+                if (!OpenWatersSettings.ExcludeMountains &&
+                    OpenWatersSettings.StartBiomeLimit == 0)
                 {
                     return;
                 }
 
-                int cells = BuildStartIslandMaskFromOriginal(original, size, radius, cellSize);
+                IslandAnalysis.Build(generator, radius);
                 Active = true;
                 long localElapsedMs = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
                 OpenWatersPlugin.Log.LogInfo(
-                    $"[Gen] Start island only: preset=Vanilla, startIsland={cells}, time={localElapsedMs} ms.");
+                    $"[Gen] Start island only: preset=Vanilla, startIsland={IslandAnalysis.StartCells}, " +
+                    $"biomeLimit={OpenWatersSettings.StartBiomeLimit}, time={localElapsedMs} ms.");
                 return;
             }
 
@@ -184,9 +182,11 @@ namespace OpenWaters
             Active = true;
 
             int startIslandCells = 0;
-            if (OpenWatersSettings.ExcludeMountains)
+            if (OpenWatersSettings.ExcludeMountains ||
+                OpenWatersSettings.StartBiomeLimit != 0)
             {
-                startIslandCells = BuildStartIslandMask(modified, fade, peak, offset, size, radius, cellSize);
+                IslandAnalysis.Build(generator, radius);
+                startIslandCells = IslandAnalysis.StartCells;
             }
 
             int actualLand = CountLand(modified, fade, peak, offset);
@@ -235,166 +235,42 @@ namespace OpenWaters
             return mountains;
         }
 
-        private static int BuildStartIslandMask(
-            float[] modified,
-            float[] fade,
-            float[] peak,
-            float offset,
-            int size,
-            float radius,
-            float cellSize)
+        public static bool TryGetStartBiomeOverride(
+            float wx,
+            float wy,
+            Heightmap.Biome originalBiome,
+            out Heightmap.Biome biome)
         {
-            bool[] land = new bool[modified.Length];
-            for (int i = 0; i < modified.Length; i++)
-            {
-                if (modified[i] < 0f)
-                {
-                    continue;
-                }
-                float value = CompressMountains(modified[i] - offset * fade[i] * peak[i]);
-                land[i] = value > OceanThreshold;
-            }
-
-            return BuildStartIslandMaskFromLand(land, size, radius, cellSize);
-        }
-
-        private static int BuildStartIslandMaskFromOriginal(
-            GetBaseHeightDelegate original,
-            int size,
-            float radius,
-            float cellSize)
-        {
-            bool[] land = new bool[size * size];
-            for (int y = 0; y < size; y++)
-            {
-                float wy = -radius + (y + 0.5f) * cellSize;
-                for (int x = 0; x < size; x++)
-                {
-                    float wx = -radius + (x + 0.5f) * cellSize;
-                    if (wx * wx + wy * wy > radius * radius)
-                    {
-                        continue;
-                    }
-                    land[y * size + x] = original(wx, wy, false) > OceanThreshold;
-                }
-            }
-
-            return BuildStartIslandMaskFromLand(land, size, radius, cellSize);
-        }
-
-        private static int BuildStartIslandMaskFromLand(
-            bool[] land,
-            int size,
-            float radius,
-            float cellSize)
-        {
-            _startIsland = null;
-            int center = size / 2;
-            int start = center * size + center;
-            if (!land[start])
-            {
-                start = FindNearestLand(land, size, center);
-            }
-            if (start < 0)
-            {
-                OpenWatersPlugin.Log.LogWarning("[Gen] Could not find starting island land.");
-                return 0;
-            }
-
-            bool[] mask = new bool[land.Length];
-            Stack<int> stack = new Stack<int>();
-            int cells = 0;
-            mask[start] = true;
-            stack.Push(start);
-            while (stack.Count > 0)
-            {
-                int index = stack.Pop();
-                cells++;
-                int x = index % size;
-                int y = index / size;
-                PushIfLand(x - 1, y);
-                PushIfLand(x + 1, y);
-                PushIfLand(x, y - 1);
-                PushIfLand(x, y + 1);
-            }
-
-            _startIsland = mask;
-            _startIslandSize = size;
-            _startIslandRadius = radius;
-            _startIslandCellSize = cellSize;
-            return cells;
-
-            void PushIfLand(int x, int y)
-            {
-                if (x < 0 || x >= size || y < 0 || y >= size)
-                {
-                    return;
-                }
-                int index = y * size + x;
-                if (!land[index] || mask[index])
-                {
-                    return;
-                }
-                mask[index] = true;
-                stack.Push(index);
-            }
-        }
-
-        private static int FindNearestLand(bool[] land, int size, int center)
-        {
-            for (int ring = 1; ring < size / 2; ring++)
-            {
-                for (int dy = -ring; dy <= ring; dy++)
-                {
-                    for (int dx = -ring; dx <= ring; dx++)
-                    {
-                        if (Math.Abs(dx) != ring && Math.Abs(dy) != ring)
-                        {
-                            continue;
-                        }
-                        int x = center + dx;
-                        int y = center + dy;
-                        if (x < 0 || x >= size || y < 0 || y >= size)
-                        {
-                            continue;
-                        }
-                        int index = y * size + x;
-                        if (land[index])
-                        {
-                            return index;
-                        }
-                    }
-                }
-            }
-            return -1;
-        }
-
-        private static bool IsStartIsland(float wx, float wy)
-        {
-            if (_startIsland == null || _startIslandCellSize <= 0f)
+            biome = Heightmap.Biome.None;
+            int limit = OpenWatersSettings.StartBiomeLimit;
+            if ((limit != 1 && limit != 2) || !IslandAnalysis.IsStartIsland(wx, wy))
             {
                 return false;
             }
 
-            int x = Mathf.FloorToInt((wx + _startIslandRadius) / _startIslandCellSize);
-            int y = Mathf.FloorToInt((wy + _startIslandRadius) / _startIslandCellSize);
-            for (int dy = -1; dy <= 1; dy++)
+            if (limit == 1)
             {
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    int nx = x + dx;
-                    int ny = y + dy;
-                    if (nx < 0 || nx >= _startIslandSize || ny < 0 || ny >= _startIslandSize)
-                    {
-                        continue;
-                    }
-                    if (_startIsland[ny * _startIslandSize + nx])
-                    {
-                        return true;
-                    }
-                }
+                biome = Heightmap.Biome.Meadows;
+                return true;
             }
-            return false;
+
+            float distance = Mathf.Sqrt(wx * wx + wy * wy);
+            if (distance <= StartSafeRadius ||
+                originalBiome == Heightmap.Biome.Meadows)
+            {
+                biome = Heightmap.Biome.Meadows;
+                return true;
+            }
+
+            if (originalBiome == Heightmap.Biome.BlackForest)
+            {
+                biome = Heightmap.Biome.BlackForest;
+                return true;
+            }
+
+            float noise = Mathf.PerlinNoise((wx + 1000f) * 0.0015f, (wy + 1000f) * 0.0015f);
+            biome = noise > 0.5f ? Heightmap.Biome.Meadows : Heightmap.Biome.BlackForest;
+            return true;
         }
 
         private static float SuppressStartMountains(float value)
@@ -412,7 +288,7 @@ namespace OpenWaters
         public static float ApplyGlobal(float wx, float wy)
         {
             float value = CompressMountains(ComputeBaseHeight(wx, wy, _heightOffset));
-            if (OpenWatersSettings.ExcludeMountains && IsStartIsland(wx, wy))
+            if (OpenWatersSettings.ExcludeMountains && IslandAnalysis.IsStartIsland(wx, wy))
             {
                 value = SuppressStartMountains(value);
             }
@@ -421,7 +297,7 @@ namespace OpenWaters
 
         public static float ApplyStartIslandOnly(float value, float wx, float wy)
         {
-            if (OpenWatersSettings.ExcludeMountains && IsStartIsland(wx, wy))
+            if (OpenWatersSettings.ExcludeMountains && IslandAnalysis.IsStartIsland(wx, wy))
             {
                 return SuppressStartMountains(value);
             }

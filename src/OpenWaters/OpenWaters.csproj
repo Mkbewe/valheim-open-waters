@@ -60,7 +60,7 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToPlugins" AfterTargets="Build">
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(SkipPluginCopy)' != 'true'">
     <MakeDir Directories="$(ValheimDir)\BepInEx\plugins\OpenWaters" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimDir)\BepInEx\plugins\OpenWaters" />
   </Target>

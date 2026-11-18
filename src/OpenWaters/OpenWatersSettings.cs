@@ -42,7 +42,7 @@ namespace OpenWaters
             Clamp(OpenWatersPlugin.FewMountainCompressionFactorConfig?.Value, 0.55f, 0f, 1f);
 
         public static bool AffectsGeneration => Enabled &&
-            (IslandAmount != VanillaIslandAmount || ExcludeMountains);
+            (IslandAmount != VanillaIslandAmount || ExcludeMountains || StartBiomeLimit != 0);
 
         public static string IslandAmountName
         {

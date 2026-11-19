@@ -9,7 +9,7 @@
 - [ ] Workflow release w CI: build → zip → GitHub Release → opcjonalnie Thunderstore.
 - [ ] Rozwiązanie problemu DLL-i Valheim w CI (nie wolno ich commitować do repo).
 - [ ] Test paczki na czystym BepInEx: Few, Medium, Vanilla, podgląd, brak błędów w logu.
-- [ ] Publikacja: GitHub Release, `Mkbewe-OpenWaters` na Thunderstore, opcjonalnie Nexus.
+- [ ] Publikacja: GitHub Release, `MkbewePP-OpenWaters` na Thunderstore (team/namespace `MkbewePP`), opcjonalnie Nexus.
 - [ ] Synchronizacja ustawień serwer ↔ klient.
 - [ ] Zmiana rozmiaru świata i limit biomów poza wyspą startową.
 - [ ] Cache kalibracji na dysku i ostrzeżenia w UI.

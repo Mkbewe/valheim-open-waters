@@ -55,7 +55,10 @@ namespace OpenWaters
                 return;
             }
 
-            WriteSidecar(world, snapshot);
+            if (WriteSidecar(world, snapshot))
+            {
+                Pending.Remove(GetKey(world.m_worldName, world.m_seedName));
+            }
         }
 
         public static void Apply(World world)
@@ -85,7 +88,10 @@ namespace OpenWaters
             if (Pending.TryGetValue(key, out Snapshot pending))
             {
                 ApplySnapshot(pending);
-                WriteSidecar(world, pending);
+                if (WriteSidecar(world, pending))
+                {
+                    Pending.Remove(key);
+                }
                 OpenWatersPlugin.Log.LogInfo(
                     $"[Settings] Applied pending settings for '{world.m_worldName}' seed='{world.m_seedName}': " +
                     $"preset={OpenWatersSettings.IslandAmountName}, radius={OpenWatersSettings.WorldRadius}");
@@ -197,12 +203,12 @@ namespace OpenWaters
             }
         }
 
-        private static void WriteSidecar(World world, Snapshot snapshot)
+        private static bool WriteSidecar(World world, Snapshot snapshot)
         {
             string path = GetSidecarPath(world);
             if (path == null)
             {
-                return;
+                return false;
             }
 
             try
@@ -232,10 +238,12 @@ namespace OpenWaters
                 File.Move(temporaryPath, path);
 
                 OpenWatersPlugin.Log.LogInfo($"[Settings] Saved sidecar '{path}'.");
+                return true;
             }
             catch (Exception exception)
             {
                 OpenWatersPlugin.Log.LogWarning($"[Settings] Failed to write sidecar for '{world.m_worldName}': {exception.Message}");
+                return false;
             }
         }
 

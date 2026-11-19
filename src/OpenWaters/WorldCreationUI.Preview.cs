@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -43,6 +46,9 @@ namespace OpenWaters
         private bool _biomeView;
         private PreviewCacheEntry _currentPreviewEntry;
         private bool _previewGenerating;
+        private WorldGenerator _previewGenerator;
+        private World _previewGeneratorWorld;
+        private string _previewGeneratorKey;
 
         private void CreatePreviewRow(FejdStartup startup, Transform parent)
         {
@@ -180,6 +186,41 @@ namespace OpenWaters
             public float LandPercent;
         }
 
+        private static string GetGeneratorKey(string seed)
+        {
+            StringBuilder key = new StringBuilder(seed);
+            key.Append('|').Append((int)OpenWatersSettings.IslandAmount);
+            key.Append('|').Append(OpenWatersSettings.WorldRadius);
+            AppendConfigValue(key, OpenWatersSettings.FewLandFraction);
+            AppendConfigValue(key, OpenWatersSettings.FewFrequencyScale);
+            AppendConfigValue(key, OpenWatersSettings.FewPeakProtection);
+            AppendConfigValue(key, OpenWatersSettings.FewDetailDamping);
+            AppendConfigValue(key, OpenWatersSettings.FewMountainCompressionStart);
+            AppendConfigValue(key, OpenWatersSettings.FewMountainCompressionFactor);
+            AppendConfigValue(key, OpenWatersSettings.MediumLandFraction);
+            AppendConfigValue(key, OpenWatersSettings.MediumFrequencyScale);
+            AppendConfigValue(key, OpenWatersSettings.MediumPeakProtection);
+            AppendConfigValue(key, OpenWatersSettings.MediumDetailDamping);
+            return key.ToString();
+        }
+
+        private static void AppendConfigValue(StringBuilder key, float value)
+        {
+            key.Append('|').Append(value.ToString("R", CultureInfo.InvariantCulture));
+        }
+
+        private static void SetGeneratorInstance(WorldGenerator generator)
+        {
+            FieldInfo field = typeof(WorldGenerator).GetField(
+                "m_instance", BindingFlags.Static | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                OpenWatersPlugin.Log.LogError("[Preview] Could not find WorldGenerator.m_instance; preview cache disabled.");
+                return;
+            }
+            field.SetValue(null, generator);
+        }
+
         private IEnumerator GeneratePreviewCoroutine(string seed, string key)
         {
             SetPreviewGenerating(true);
@@ -202,23 +243,47 @@ namespace OpenWaters
             long started = DateTime.UtcNow.Ticks;
             PreviewResult result = new PreviewResult();
             bool initialized = false;
+            string generatorKey = GetGeneratorKey(seed);
             try
             {
-                IslandAnalysis.DeferAnalysis = true;
-                try
+                if (_previewGenerator != null && _previewGeneratorKey == generatorKey)
                 {
-                    WorldGenerator.Initialize(new World(OpenWatersSettings.PreviewWorldName, seed));
-                    initialized = true;
+                    SetGeneratorInstance(_previewGenerator);
+                    NoiseModifier.SetWorld(_previewGeneratorWorld);
+                    IslandAnalysis.DeferAnalysis = true;
+                    try
+                    {
+                        NoiseModifier.Build(_previewGenerator);
+                        initialized = true;
+                    }
+                    finally
+                    {
+                        IslandAnalysis.DeferAnalysis = false;
+                    }
                 }
-                finally
+                else
                 {
-                    IslandAnalysis.DeferAnalysis = false;
+                    IslandAnalysis.DeferAnalysis = true;
+                    try
+                    {
+                        World previewWorld = new World(OpenWatersSettings.PreviewWorldName, seed);
+                        WorldGenerator.Initialize(previewWorld);
+                        _previewGenerator = WorldGenerator.instance;
+                        _previewGeneratorWorld = previewWorld;
+                        _previewGeneratorKey = generatorKey;
+                        initialized = true;
+                    }
+                    finally
+                    {
+                        IslandAnalysis.DeferAnalysis = false;
+                    }
                 }
             }
             catch (Exception exception)
             {
                 OpenWatersPlugin.Log.LogError($"[Preview] World generation failed: {exception}");
             }
+
 
             if (initialized)
             {
@@ -286,6 +351,7 @@ namespace OpenWaters
 
             try
             {
+                WorldGenerator.Deitialize();
                 WorldGenerator.Initialize(World.GetMenuWorld());
             }
             catch (Exception exception)
@@ -355,7 +421,7 @@ namespace OpenWaters
                         float wx = -radius + (x + 0.5f) * cellSize;
                         if (wx * wx + wy * wy > radius * radius)
                         {
-                            Color32 outside = new Color32(4, 8, 16, 255);
+                            Color32 outside = BiomePalette.Outside;
                             pixels[index] = outside;
                             biomePixels[index] = outside;
                             continue;
@@ -363,9 +429,9 @@ namespace OpenWaters
 
                         insideCells++;
                         bool isLand = WorldGenerator.instance.GetHeight(wx, wy) > 30f;
-                        Color32 water = new Color32(30, 70, 122, 255);
+                        Color32 water = BiomePalette.Water;
                         pixels[index] = isLand
-                            ? new Color32(116, 178, 94, 255)
+                            ? BiomePalette.Land
                             : water;
 
                         Heightmap.Biome biome = WorldGenerator.instance.GetBiome(wx, wy);
@@ -373,11 +439,11 @@ namespace OpenWaters
                         swamp[index] = isSwamp;
                         if (isSwamp)
                         {
-                            biomePixels[index] = GetBiomeColor(biome);
+                            biomePixels[index] = BiomePalette.ForBiome(biome);
                         }
                         else if (isLand && biome != Heightmap.Biome.Ocean)
                         {
-                            biomePixels[index] = GetBiomeColor(biome);
+                            biomePixels[index] = BiomePalette.ForBiome(biome);
                         }
                         else
                         {
@@ -394,7 +460,7 @@ namespace OpenWaters
                 yield return null;
             }
 
-            Color32 swampWater = new Color32(88, 116, 92, 255);
+            Color32 swampWater = BiomePalette.SwampWater;
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -414,7 +480,7 @@ namespace OpenWaters
             result.Islands = CountIslands(land, size, minIslandCells, cellSize, pixels, biomePixels, out result.Components);
 
             int center = size / 2;
-            Color32 marker = new Color32(255, 120, 20, 255);
+            Color32 marker = BiomePalette.SpawnMarker;
             for (int dy = -2; dy <= 2; dy++)
             {
                 for (int dx = -2; dx <= 2; dx++)
@@ -448,29 +514,6 @@ namespace OpenWaters
             return texture;
         }
 
-        private static Color32 GetBiomeColor(Heightmap.Biome biome)
-        {
-            switch (biome)
-            {
-                case Heightmap.Biome.BlackForest:
-                    return new Color32(36, 122, 74, 255);
-                case Heightmap.Biome.Swamp:
-                    return new Color32(160, 142, 78, 255);
-                case Heightmap.Biome.Mountain:
-                    return new Color32(198, 202, 210, 255);
-                case Heightmap.Biome.Plains:
-                    return new Color32(210, 186, 84, 255);
-                case Heightmap.Biome.Mistlands:
-                    return new Color32(132, 108, 154, 255);
-                case Heightmap.Biome.AshLands:
-                    return new Color32(142, 54, 38, 255);
-                case Heightmap.Biome.DeepNorth:
-                    return new Color32(174, 204, 220, 255);
-                default:
-                    return new Color32(116, 178, 94, 255);
-            }
-        }
-
         private static bool HasSwampNeighbor(bool[] swamp, int size, int x, int y)
         {
             for (int dy = -1; dy <= 1; dy++)
@@ -498,51 +541,37 @@ namespace OpenWaters
 
         private static int CountIslands(bool[] land, int size, int minCells, float cellSize, Color32[] pixels, Color32[] biomePixels, out int componentCount)
         {
-            bool[] visited = new bool[land.Length];
-            Stack<int> stack = new Stack<int>();
-            List<LandComponent> components = new List<LandComponent>();
-
-            for (int start = 0; start < land.Length; start++)
+            int[] labels = GridComponents.Label(land, size, out componentCount);
+            List<LandComponent> components = new List<LandComponent>(componentCount);
+            for (int i = 0; i < componentCount; i++)
             {
-                if (!land[start] || visited[start])
-                {
-                    continue;
-                }
-
-                List<int> cells = new List<int>();
-                int minX = size;
-                int maxX = -1;
-                int minY = size;
-                int maxY = -1;
-
-                visited[start] = true;
-                stack.Push(start);
-                while (stack.Count > 0)
-                {
-                    int index = stack.Pop();
-                    cells.Add(index);
-                    int x = index % size;
-                    int y = index / size;
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                    PushIfLand(x - 1, y);
-                    PushIfLand(x + 1, y);
-                    PushIfLand(x, y - 1);
-                    PushIfLand(x, y + 1);
-                }
-
                 components.Add(new LandComponent
                 {
-                    Cells = cells,
-                    MinX = minX,
-                    MaxX = maxX,
-                    MinY = minY,
-                    MaxY = maxY
+                    Cells = new List<int>(),
+                    MinX = size,
+                    MaxX = -1,
+                    MinY = size,
+                    MaxY = -1
                 });
             }
 
+            for (int i = 0; i < land.Length; i++)
+            {
+                if (!land[i])
+                {
+                    continue;
+                }
+                int label = labels[i];
+                LandComponent component = components[label];
+                component.Cells.Add(i);
+                int x = i % size;
+                int y = i / size;
+                if (x < component.MinX) component.MinX = x;
+                if (x > component.MaxX) component.MaxX = x;
+                if (y < component.MinY) component.MinY = y;
+                if (y > component.MaxY) component.MaxY = y;
+                components[label] = component;
+            }
             componentCount = components.Count;
             if (components.Count == 0)
             {
@@ -611,28 +640,13 @@ namespace OpenWaters
                 List<int> cells = components[i].Cells;
                 for (int cell = 0; cell < cells.Count; cell++)
                 {
-                    Color32 hidden = new Color32(72, 100, 66, 255);
+                    Color32 hidden = BiomePalette.HiddenLand;
                     pixels[cells[cell]] = hidden;
                     biomePixels[cells[cell]] = hidden;
                 }
             }
 
             return islands;
-
-            void PushIfLand(int x, int y)
-            {
-                if (x < 0 || x >= size || y < 0 || y >= size)
-                {
-                    return;
-                }
-                int index = y * size + x;
-                if (!land[index] || visited[index])
-                {
-                    return;
-                }
-                visited[index] = true;
-                stack.Push(index);
-            }
         }
 
         private static bool Overlaps(LandComponent first, LandComponent second, int gap)

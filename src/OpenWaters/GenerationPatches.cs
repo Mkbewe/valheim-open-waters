@@ -56,7 +56,7 @@ namespace OpenWaters
                 return;
             }
 
-            if (NoiseModifier.TryGetStartBiomeOverride(wx, wy, __result, out Heightmap.Biome biome))
+            if (StartIslandModifier.TryGetBiomeOverride(wx, wy, __result, out Heightmap.Biome biome))
             {
                 __result = biome;
             }
@@ -74,7 +74,7 @@ namespace OpenWaters
                 return true;
             }
 
-            __result = NoiseModifier.ApplyGlobal(wx, wy);
+            __result = NoiseModifier.ApplyGlobal(GenerationSession.Current, wx, wy);
             return false;
         }
 
@@ -83,7 +83,7 @@ namespace OpenWaters
         {
             if (!menuTerrain && NoiseModifier.Active && !NoiseModifier.UsesGlobalNoise)
             {
-                __result = NoiseModifier.ApplyStartIslandOnly(__result, wx, wy);
+                __result = StartIslandModifier.Apply(__result, wx, wy);
             }
         }
     }

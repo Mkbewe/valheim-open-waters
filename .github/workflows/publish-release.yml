@@ -1,0 +1,121 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "release" to confirm publishing
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Tag, release and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm manual release
+        if: inputs.confirm != 'release'
+        shell: bash
+        run: |
+          echo "::error::Type 'release' in the confirm input to publish."
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine release version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists; skipping publication."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify release ZIP
+        id: package
+        if: steps.version.outputs.exists == 'false'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          ZIP="release/MkbewePP-OpenWaters-$VERSION.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::Missing release ZIP: $ZIP"
+            exit 1
+          fi
+
+          unzip -p "$ZIP" manifest.json > /tmp/package-manifest.json
+          node -e '
+            const fs = require("node:fs");
+            const expected = process.env.VERSION;
+            const manifest = JSON.parse(fs.readFileSync("/tmp/package-manifest.json", "utf8"));
+            if (manifest.version_number !== expected) {
+              console.error(`ZIP manifest version ${manifest.version_number} does not match ${expected}`);
+              process.exit(1);
+            }
+          '
+
+          echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes
+        if: steps.version.outputs.exists == 'false'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          awk -v version="$VERSION" '
+            /^## / {
+              if (inside) exit
+              if (index($0, version) > 0) { inside = 1; next }
+            }
+            inside { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "::error::No changelog section found for $VERSION"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "${{ steps.package.outputs.path }}" \
+            --target "$GITHUB_SHA" \
+            --title "Open Waters ${{ steps.version.outputs.tag }}" \
+            --notes-file /tmp/release-notes.md
+
+      - name: Publish to Thunderstore
+        if: steps.version.outputs.exists == 'false'
+        uses: GreenTF/upload-thunderstore-package@v4.3
+        with:
+          token: ${{ secrets.TCLI_AUTH_TOKEN }}
+          community: valheim
+          namespace: MkbewePP
+          name: OpenWaters
+          description: Fewer islands and more open ocean. Natural coastlines, starting-island options and map preview.
+          version: ${{ steps.version.outputs.value }}
+          file: ${{ steps.package.outputs.path }}
+          repo: thunderstore.io
+          website: https://github.com/Mkbewe/valheim-open-waters

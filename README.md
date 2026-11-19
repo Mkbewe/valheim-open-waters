@@ -67,17 +67,17 @@ The SDK is under `~/.dotnet`; the game directory is set in `Directory.Build.prop
 
 Use `-p:SkipPluginCopy=true` when the game is running and the DLL is locked.
 
-To build a release package:
+To build a release package locally:
 
 ```powershell
-.\tooling\build-release.ps1
+npm run build
 ```
 
-The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `dist/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.settings`.
+The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.settings`.
 
 ## Releases
 
-Release changelog and versioning are local and reviewed. Preview the next release:
+Release changelog, versions and the release ZIP are built locally. Preview the next release:
 
 ```powershell
 npm run release:dry
@@ -92,16 +92,9 @@ npm run release
 # npm run release:major
 ```
 
-The script requires a clean `main`, creates `release/v<version>`, updates `package.json`, `package-lock.json`, `manifest.json`, `CHANGELOG.md`, `Plugin.cs`, README and user guide, and creates one release commit. It does not tag or push.
+The script requires a clean `main`, creates `release/v<version>`, updates `package.json`, `package-lock.json`, `manifest.json`, `CHANGELOG.md`, `Plugin.cs`, README and user guide, builds `release/MkbewePP-OpenWaters-<version>.zip`, and creates one release commit. It does not tag or push.
 
-Push the release branch, open a PR and merge it. Then create the tag manually, build the ZIP and attach it to the GitHub Release:
-
-```powershell
-git push -u origin release/v<version>
-git tag -a v<version> -m "Open Waters v<version>"
-git push origin v<version>
-.\tooling\build-release.ps1
-```
+Push the release branch and merge the PR. After merge, run the `Publish Release` workflow manually from GitHub Actions; type `release` in the `confirm` input to continue. It creates the Git tag and GitHub Release, attaches the ZIP and publishes the same ZIP to Thunderstore. CI does not build the mod. Thunderstore publishing requires the `TCLI_AUTH_TOKEN` repository secret.
 
 If there is no previous `v*` tag, the first changelog includes the full history; create a baseline `v0.1.0` tag first. Do not edit `CHANGELOG.md` manually for new releases.
 

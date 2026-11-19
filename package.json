@@ -5,7 +5,7 @@
   "description": "Development tooling for the Open Waters Valheim mod",
   "scripts": {
     "prepare": "husky",
-    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tooling/build-release.ps1",
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tooling/build-release.ps1 -OutputDir release",
     "release": "node tooling/release.mjs",
     "release:dry": "node tooling/release.mjs --dry-run",
     "release:patch": "node tooling/release.mjs patch",

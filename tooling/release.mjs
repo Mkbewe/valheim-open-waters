@@ -24,6 +24,8 @@ const pluginPath = path.join(repoRoot, 'src', 'OpenWaters', 'Plugin.cs');
 const readmePath = path.join(repoRoot, 'README.md');
 const guidePath = path.join(repoRoot, 'docs', 'USER_GUIDE.md');
 const releaseItPath = path.join(repoRoot, 'node_modules', 'release-it', 'bin', 'release-it.js');
+const buildScriptPath = path.join(repoRoot, 'tooling', 'build-release.ps1');
+const releaseDir = path.join(repoRoot, 'release');
 
 function capture(command, commandArgs, options = {}) {
   return execFileSync(command, commandArgs, {
@@ -183,6 +185,24 @@ try {
 
 syncVersions(nextVersion);
 
+const powershell = process.platform === 'win32' ? 'powershell' : 'pwsh';
+const powershellArgs = ['-NoProfile'];
+if (process.platform === 'win32') {
+  powershellArgs.push('-ExecutionPolicy', 'Bypass');
+}
+powershellArgs.push('-File', buildScriptPath, '-OutputDir', 'release');
+
+try {
+  run(powershell, powershellArgs);
+} catch {
+  fail(`Release build failed. Branch ${releaseBranch} was left in place for inspection.`);
+}
+
+const packageZip = path.join(releaseDir, `MkbewePP-OpenWaters-${nextVersion}.zip`);
+if (!existsSync(packageZip)) {
+  fail(`Release ZIP not found at ${packageZip}.`);
+}
+
 const files = [
   'package.json',
   'package-lock.json',
@@ -191,6 +211,7 @@ const files = [
   'src/OpenWaters/Plugin.cs',
   'README.md',
   'docs/USER_GUIDE.md',
+  path.relative(repoRoot, packageZip).replaceAll('\\', '/'),
 ].filter((file) => existsSync(path.join(repoRoot, file)));
 
 run('git', ['add', ...files]);
@@ -203,7 +224,7 @@ run('git', ['commit', '-m', `chore(release): v${nextVersion}`]);
 
 console.log('');
 console.log(`Created ${releaseBranch} with chore(release): v${nextVersion}.`);
+console.log(`Included release ZIP: ${path.relative(repoRoot, packageZip)}`);
 console.log('No tag or push was created.');
 console.log(`Next: git push -u origin ${releaseBranch}`);
-console.log(`After merge: git tag -a v${nextVersion} -m "Open Waters v${nextVersion}"`);
-console.log('Then build the release ZIP with .\\tooling\\build-release.ps1.');
+console.log('After merge, run the Publish Release workflow manually and type "release" to confirm.');

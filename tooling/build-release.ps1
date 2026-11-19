@@ -2,7 +2,7 @@
 param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
-    [string]$OutputDir = "dist",
+    [string]$OutputDir = "release",
     [string]$DotnetPath = "$env:USERPROFILE\.dotnet\dotnet.exe",
     [switch]$SkipTests,
     [switch]$KeepStaging

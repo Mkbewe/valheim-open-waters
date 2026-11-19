@@ -4,7 +4,8 @@
   "private": true,
   "description": "Development tooling for the Open Waters Valheim mod",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tooling/build-release.ps1"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

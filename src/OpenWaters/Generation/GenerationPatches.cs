@@ -70,7 +70,8 @@ namespace OpenWaters
         private static bool Prefix(float wx, float wy, bool menuTerrain, ref float __result)
         {
             GenerationSession session = GenerationSession.Current;
-            if (menuTerrain || session.Stage != GenerationStage.Ready ||
+            if (menuTerrain || session.Stage == GenerationStage.Idle ||
+                session.Stage == GenerationStage.Calibrating ||
                 !session.UsesGlobalNoise || session.Field == null)
             {
                 return true;

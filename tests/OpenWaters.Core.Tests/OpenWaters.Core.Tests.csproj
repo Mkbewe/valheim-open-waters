@@ -21,7 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\OpenWaters\GridComponents.cs" Link="GridComponents.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\GridComponents.cs" Link="GridComponents.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\NoiseField.cs" Link="NoiseField.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\LandCalibrator.cs" Link="LandCalibrator.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\WorldSettings.cs" Link="WorldSettings.cs" />
   </ItemGroup>
 
 </Project>

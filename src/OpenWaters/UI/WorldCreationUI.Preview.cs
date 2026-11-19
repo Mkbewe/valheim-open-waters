@@ -191,6 +191,8 @@ namespace OpenWaters
             StringBuilder key = new StringBuilder(seed);
             key.Append('|').Append((int)OpenWatersSettings.IslandAmount);
             key.Append('|').Append(OpenWatersSettings.WorldRadius);
+            key.Append('|').Append(OpenWatersSettings.StartBiomeLimit);
+            key.Append('|').Append(OpenWatersSettings.ExcludeMountains ? 1 : 0);
             AppendConfigValue(key, OpenWatersSettings.FewLandFraction);
             AppendConfigValue(key, OpenWatersSettings.FewFrequencyScale);
             AppendConfigValue(key, OpenWatersSettings.FewPeakProtection);
@@ -209,16 +211,18 @@ namespace OpenWaters
             key.Append('|').Append(value.ToString("R", CultureInfo.InvariantCulture));
         }
 
-        private static void SetGeneratorInstance(WorldGenerator generator)
+        private static bool SetGeneratorInstance(WorldGenerator generator)
         {
             FieldInfo field = typeof(WorldGenerator).GetField(
                 "m_instance", BindingFlags.Static | BindingFlags.NonPublic);
             if (field == null)
             {
-                OpenWatersPlugin.Log.LogError("[Preview] Could not find WorldGenerator.m_instance; preview cache disabled.");
-                return;
+                OpenWatersPlugin.Log.LogError(
+                    "[Preview] Could not find WorldGenerator.m_instance; preview cache disabled.");
+                return false;
             }
             field.SetValue(null, generator);
+            return true;
         }
 
         private IEnumerator GeneratePreviewCoroutine(string seed, string key)
@@ -246,11 +250,13 @@ namespace OpenWaters
             string generatorKey = GetGeneratorKey(seed);
             try
             {
-                if (_previewGenerator != null && _previewGeneratorKey == generatorKey)
+                bool useCache = _previewGenerator != null &&
+                                _previewGeneratorKey == generatorKey &&
+                                SetGeneratorInstance(_previewGenerator);
+                if (useCache)
                 {
-                    SetGeneratorInstance(_previewGenerator);
                     NoiseModifier.SetWorld(_previewGeneratorWorld);
-                    IslandAnalysis.DeferAnalysis = true;
+                    GenerationSession.Current.DeferIslandAnalysis = true;
                     try
                     {
                         NoiseModifier.Build(_previewGenerator);
@@ -258,12 +264,15 @@ namespace OpenWaters
                     }
                     finally
                     {
-                        IslandAnalysis.DeferAnalysis = false;
+                        GenerationSession.Current.DeferIslandAnalysis = false;
                     }
                 }
                 else
                 {
-                    IslandAnalysis.DeferAnalysis = true;
+                    _previewGenerator = null;
+                    _previewGeneratorWorld = null;
+                    _previewGeneratorKey = null;
+                    GenerationSession.DeferNextSession();
                     try
                     {
                         World previewWorld = new World(OpenWatersSettings.PreviewWorldName, seed);
@@ -275,7 +284,8 @@ namespace OpenWaters
                     }
                     finally
                     {
-                        IslandAnalysis.DeferAnalysis = false;
+                        GenerationSession.ClearDeferredSession();
+                        GenerationSession.Current.DeferIslandAnalysis = false;
                     }
                 }
             }
@@ -291,6 +301,7 @@ namespace OpenWaters
 
                 if (OpenWatersSettings.ExcludeMountains || OpenWatersSettings.StartBiomeLimit != 0)
                 {
+                    GenerationSession.Current.BeginAnalysis();
                     bool begun = false;
                     try
                     {
@@ -325,6 +336,7 @@ namespace OpenWaters
                             yield return null;
                         }
                     }
+                    GenerationSession.Current.MarkReady();
                     yield return null;
                 }
 

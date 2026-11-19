@@ -43,7 +43,7 @@ namespace OpenWaters
         [HarmonyPostfix]
         private static void Postfix(float wx, float wy, ref Heightmap.Biome __result)
         {
-            if (IslandAnalysis.Analyzing)
+            if (GenerationSession.Current.Stage != GenerationStage.Ready || IslandAnalysis.Analyzing)
             {
                 return;
             }
@@ -69,19 +69,22 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static bool Prefix(float wx, float wy, bool menuTerrain, ref float __result)
         {
-            if (menuTerrain || !NoiseModifier.Active || !NoiseModifier.UsesGlobalNoise)
+            GenerationSession session = GenerationSession.Current;
+            if (menuTerrain || session.Stage != GenerationStage.Ready ||
+                !session.UsesGlobalNoise || session.Field == null)
             {
                 return true;
             }
 
-            __result = NoiseModifier.ApplyGlobal(GenerationSession.Current, wx, wy);
+            __result = NoiseModifier.ApplyGlobal(session, wx, wy);
             return false;
         }
 
         [HarmonyPostfix]
         private static void Postfix(float wx, float wy, bool menuTerrain, ref float __result)
         {
-            if (!menuTerrain && NoiseModifier.Active && !NoiseModifier.UsesGlobalNoise)
+            GenerationSession session = GenerationSession.Current;
+            if (!menuTerrain && session.Stage == GenerationStage.Ready && !session.UsesGlobalNoise)
             {
                 __result = StartIslandModifier.Apply(__result, wx, wy);
             }

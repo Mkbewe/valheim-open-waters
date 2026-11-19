@@ -53,8 +53,6 @@ namespace OpenWaters
         private static long _started;
         private static bool _analyzing;
 
-        public static bool DeferAnalysis;
-
         public static bool Analyzing => _analyzing;
         public static bool Ready => _cellIsland != null;
         public static int StartCells => _startCells;
@@ -81,7 +79,7 @@ namespace OpenWaters
 
         public static void Build(WorldGenerator generator, float radius)
         {
-            if (DeferAnalysis)
+            if (GenerationSession.Current.DeferIslandAnalysis)
             {
                 return;
             }

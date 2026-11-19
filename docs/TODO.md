@@ -13,3 +13,4 @@
 - [ ] Synchronizacja ustawień serwer ↔ klient.
 - [ ] Zmiana rozmiaru świata i limit biomów poza wyspą startową.
 - [ ] Cache kalibracji na dysku i ostrzeżenia w UI.
+- [ ] Opcja „rzeka dzieli wyspę na dwie" (checkbox `MergeRiverSeparatedIslands`): `Separate` = tylko komponent spawnu, `Merge` = dokładanie małych komponentów w promieniu 500 m. Wymaga: `OpenWatersSettings` + config BepInEx, pola w sidecarze i bump wersji 1→2 z fallbackiem `false`, UI w Starting Island, klucza cache podglądu i trybu w logu analizy.

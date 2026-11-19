@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -30,14 +31,15 @@ namespace OpenWaters
     {
         private const int Samples = 1024;
         private const float WaterLevel = 30f;
-        private const float AnchorSearchRadius = 2500f;
+        private const float AnchorSearchRadius = 500f;
+        private const float RiverSeamRadius = 120f;
+        private const float MinStartIslandAreaKm2 = 0.15f;
 
         private static Heightmap.Biome[] _cellBiome;
         private static ushort[] _cellIsland;
+        private static bool[] _startMask;
         private static IslandInfo[] _islands;
         private static bool[] _land;
-        private static int[] _parent;
-        private static int[] _rank;
         private static GetBiomeDelegate _getBiome;
         private static GetHeightDelegate _getHeight;
         private static int _size;
@@ -46,6 +48,7 @@ namespace OpenWaters
         private static Vector2 _anchor;
         private static ushort _startIsland = ushort.MaxValue;
         private static int _startCells;
+        private static int _absorbed;
         private static int _sampleRow;
         private static long _started;
         private static bool _analyzing;
@@ -64,14 +67,14 @@ namespace OpenWaters
         {
             _cellBiome = null;
             _cellIsland = null;
+            _startMask = null;
             _islands = null;
             _land = null;
-            _parent = null;
-            _rank = null;
             _getBiome = null;
             _getHeight = null;
             _startIsland = ushort.MaxValue;
             _startCells = 0;
+            _absorbed = 0;
             _sampleRow = 0;
             _analyzing = false;
         }
@@ -128,12 +131,6 @@ namespace OpenWaters
             _cellSize = 2f * radius / size;
             _land = new bool[size * size];
             _cellBiome = new Heightmap.Biome[size * size];
-            _parent = new int[size * size];
-            _rank = new int[size * size];
-            for (int i = 0; i < _parent.Length; i++)
-            {
-                _parent[i] = i;
-            }
 
             _sampleRow = 0;
             _started = DateTime.UtcNow.Ticks;
@@ -161,14 +158,6 @@ namespace OpenWaters
                     }
                     _land[index] = true;
                     _cellBiome[index] = _getBiome(wx, wy, 0.02f, false);
-                    if (x > 0 && _land[index - 1])
-                    {
-                        Unite(_parent, _rank, index - 1, index);
-                    }
-                    if (y > 0 && _land[index - _size])
-                    {
-                        Unite(_parent, _rank, index - _size, index);
-                    }
                 }
             }
             _sampleRow = end;
@@ -189,15 +178,15 @@ namespace OpenWaters
             _analyzing = false;
 
             bool[] land = _land;
-            int[] parent = _parent;
-            int[] rank = _rank;
             int size = _size;
             float radius = _radius;
             float cellSize = _cellSize;
             Heightmap.Biome[] biomes = _cellBiome;
 
-            int[] rootCells = new int[parent.Length];
-            List<int> roots = new List<int>();
+            Stopwatch labelTimer = Stopwatch.StartNew();
+            int[] labels = GridComponents.Label(land, size, out int componentCount);
+            labelTimer.Stop();
+            IslandInfo[] byLabel = new IslandInfo[componentCount];
             int landCells = 0;
             for (int i = 0; i < land.Length; i++)
             {
@@ -205,58 +194,21 @@ namespace OpenWaters
                 {
                     continue;
                 }
-                int root = Find(parent, i);
-                if (rootCells[root] == 0)
+
+                int label = labels[i];
+                IslandInfo info = byLabel[label];
+                if (info == null)
                 {
-                    roots.Add(root);
+                    info = new IslandInfo
+                    {
+                        MinX = size,
+                        MinY = size,
+                        MaxX = -1,
+                        MaxY = -1
+                    };
+                    byLabel[label] = info;
                 }
-                rootCells[root]++;
-                landCells++;
-            }
 
-            roots.Sort((a, b) =>
-            {
-                int bySize = rootCells[b].CompareTo(rootCells[a]);
-                return bySize != 0 ? bySize : a.CompareTo(b);
-            });
-
-            Dictionary<int, ushort> ids = new Dictionary<int, ushort>(roots.Count);
-            for (int i = 0; i < roots.Count; i++)
-            {
-                ids[roots[i]] = (ushort)i;
-            }
-
-            _size = size;
-            _radius = radius;
-            _cellSize = cellSize;
-            _cellBiome = biomes;
-            _cellIsland = new ushort[size * size];
-            for (int i = 0; i < _cellIsland.Length; i++)
-            {
-                _cellIsland[i] = ushort.MaxValue;
-            }
-            _islands = new IslandInfo[roots.Count];
-            for (int i = 0; i < _islands.Length; i++)
-            {
-                _islands[i] = new IslandInfo
-                {
-                    Id = (ushort)i,
-                    MinX = size,
-                    MinY = size,
-                    MaxX = -1,
-                    MaxY = -1
-                };
-            }
-
-            for (int i = 0; i < land.Length; i++)
-            {
-                if (!land[i])
-                {
-                    continue;
-                }
-                ushort id = ids[Find(parent, i)];
-                _cellIsland[i] = id;
-                IslandInfo info = _islands[id];
                 int x = i % size;
                 int y = i / size;
                 info.Cells++;
@@ -267,14 +219,37 @@ namespace OpenWaters
                 if (y < info.MinY) info.MinY = y;
                 if (y > info.MaxY) info.MaxY = y;
                 info.BiomeCells[BiomeSlot(biomes[i])]++;
+                landCells++;
+            }
+
+            List<int> order = new List<int>(componentCount);
+            for (int i = 0; i < byLabel.Length; i++)
+            {
+                if (byLabel[i] != null)
+                {
+                    order.Add(i);
+                }
+            }
+
+            order.Sort((a, b) =>
+            {
+                int bySize = byLabel[b].Cells.CompareTo(byLabel[a].Cells);
+                return bySize != 0 ? bySize : a.CompareTo(b);
+            });
+
+            int[] remap = new int[componentCount];
+            _islands = new IslandInfo[order.Count];
+            for (int i = 0; i < order.Count; i++)
+            {
+                int oldId = order[i];
+                IslandInfo info = byLabel[oldId];
+                info.Id = (ushort)i;
+                _islands[i] = info;
+                remap[oldId] = i;
             }
 
             foreach (IslandInfo info in _islands)
             {
-                if (info.Cells == 0)
-                {
-                    continue;
-                }
                 info.CenterX = (info.CenterX / info.Cells + 0.5f) * cellSize - radius;
                 info.CenterY = (info.CenterY / info.Cells + 0.5f) * cellSize - radius;
                 int best = 0;
@@ -289,20 +264,45 @@ namespace OpenWaters
                 info.DominantShare = (float)info.BiomeCells[best] / info.Cells;
             }
 
-            _anchor = Vector2.zero;
+            _cellIsland = new ushort[size * size];
+            for (int i = 0; i < _cellIsland.Length; i++)
+            {
+                _cellIsland[i] = ushort.MaxValue;
+            }
+            for (int i = 0; i < land.Length; i++)
+            {
+                if (land[i])
+                {
+                    _cellIsland[i] = (ushort)remap[labels[i]];
+                }
+            }
 
+            _anchor = Vector2.zero;
             int anchorX = Mathf.Clamp(Mathf.FloorToInt((_anchor.x + radius) / cellSize), 0, size - 1);
             int anchorY = Mathf.Clamp(Mathf.FloorToInt((_anchor.y + radius) / cellSize), 0, size - 1);
             int anchorIndex = anchorY * size + anchorX;
-            if (land[anchorIndex])
-            {
-                _startIsland = ids[Find(parent, anchorIndex)];
-            }
-            else
+            IslandInfo anchorInfo = land[anchorIndex]
+                ? _islands[remap[labels[anchorIndex]]]
+                : null;
+            int minCells = Mathf.Max(1, Mathf.CeilToInt(MinStartIslandAreaKm2 * 1000000f / (cellSize * cellSize)));
+
+            IslandInfo chosen = anchorInfo != null && anchorInfo.Cells >= minCells
+                ? anchorInfo
+                : null;
+            if (chosen == null)
             {
                 float best = float.MaxValue;
                 foreach (IslandInfo info in _islands)
                 {
+                    if (info.Cells < minCells)
+                    {
+                        continue;
+                    }
+                    if (anchorInfo != null &&
+                        BBoxDistanceSqr(anchorInfo, info, cellSize, radius) > RiverSeamRadius * RiverSeamRadius)
+                    {
+                        continue;
+                    }
                     float minX = info.MinX * cellSize - radius;
                     float maxX = (info.MaxX + 1) * cellSize - radius;
                     float minY = info.MinY * cellSize - radius;
@@ -310,19 +310,25 @@ namespace OpenWaters
                     float dx = Mathf.Max(0f, Mathf.Max(minX - _anchor.x, _anchor.x - maxX));
                     float dy = Mathf.Max(0f, Mathf.Max(minY - _anchor.y, _anchor.y - maxY));
                     float distance = dx * dx + dy * dy;
-                    if (distance < best)
+                    if (distance < best && distance <= AnchorSearchRadius * AnchorSearchRadius)
                     {
                         best = distance;
-                        _startIsland = info.Id;
+                        chosen = info;
                     }
                 }
-                if (best > AnchorSearchRadius * AnchorSearchRadius)
+            }
+            if (chosen == null)
+            {
+                chosen = anchorInfo;
+                if (chosen != null && chosen.Cells < minCells)
                 {
-                    _startIsland = ushort.MaxValue;
+                    OpenWatersPlugin.Log.LogWarning(
+                        $"[Gen] No island >= {minCells} cells near the anchor; keeping the small component '{chosen.Id}'.");
                 }
             }
 
-            CountStartCells();
+            _startIsland = chosen != null ? chosen.Id : ushort.MaxValue;
+            BuildStartMask(chosen, anchorInfo, minCells);
 
             long elapsedMs = (DateTime.UtcNow.Ticks - _started) / TimeSpan.TicksPerMillisecond;
             IslandInfo start = StartIsland;
@@ -330,50 +336,59 @@ namespace OpenWaters
                 $"[Gen] Island analysis: islands={_islands.Length}, land={landCells}, " +
                 $"anchor=({_anchor.x:0},{_anchor.y:0}), " +
                 $"startIsland={(start != null ? start.Id.ToString() : "none")}, " +
-                $"startCells={_startCells}, " +
+                $"startCells={_startCells}, absorbed={_absorbed}, minCells={minCells}, " +
                 $"center={(start != null ? $"({start.CenterX:0},{start.CenterY:0})" : "none")}, " +
                 $"extent={(start != null ? $"({(start.MaxX - start.MinX + 1) * cellSize:0}x{(start.MaxY - start.MinY + 1) * cellSize:0} m)" : "none")}, " +
                 $"dominant={(start != null ? start.DominantBiome.ToString() : "none")} " +
-                $"({(start != null ? start.DominantShare : 0f):P0}), time={elapsedMs} ms.");
+                $"({(start != null ? start.DominantShare : 0f):P0}), labels={labelTimer.ElapsedMilliseconds} ms, time={elapsedMs} ms.");
             return true;
         }
 
-        private static void CountStartCells()
+        private static float BBoxDistanceSqr(
+            IslandInfo first,
+            IslandInfo second,
+            float cellSize,
+            float radius)
         {
-            IslandInfo start = StartIsland;
-            _startCells = start != null ? start.Cells : 0;
+            float firstMinX = first.MinX * cellSize - radius;
+            float firstMaxX = (first.MaxX + 1) * cellSize - radius;
+            float firstMinY = first.MinY * cellSize - radius;
+            float firstMaxY = (first.MaxY + 1) * cellSize - radius;
+            float secondMinX = second.MinX * cellSize - radius;
+            float secondMaxX = (second.MaxX + 1) * cellSize - radius;
+            float secondMinY = second.MinY * cellSize - radius;
+            float secondMaxY = (second.MaxY + 1) * cellSize - radius;
+            float dx = Mathf.Max(0f, Mathf.Max(firstMinX - secondMaxX, secondMinX - firstMaxX));
+            float dy = Mathf.Max(0f, Mathf.Max(firstMinY - secondMaxY, secondMinY - firstMaxY));
+            return dx * dx + dy * dy;
         }
 
-        private static int Find(int[] parent, int index)
+        private static void BuildStartMask(IslandInfo start, IslandInfo anchor, int minCells)
         {
-            while (parent[index] != index)
-            {
-                parent[index] = parent[parent[index]];
-                index = parent[index];
-            }
-            return index;
-        }
-
-        private static void Unite(int[] parent, int[] rank, int first, int second)
-        {
-            int a = Find(parent, first);
-            int b = Find(parent, second);
-            if (a == b)
+            _startCells = 0;
+            _absorbed = 0;
+            _startMask = new bool[_cellIsland == null ? 0 : _cellIsland.Length];
+            if (start == null || _cellIsland == null)
             {
                 return;
             }
-            if (rank[a] < rank[b])
+
+            HashSet<ushort> ids = new HashSet<ushort> { start.Id };
+            if (anchor != null && anchor.Id != start.Id && anchor.Cells < minCells)
             {
-                parent[a] = b;
+                ids.Add(anchor.Id);
+                _absorbed++;
             }
-            else if (rank[a] > rank[b])
+
+            for (int i = 0; i < _cellIsland.Length; i++)
             {
-                parent[b] = a;
-            }
-            else
-            {
-                parent[b] = a;
-                rank[a]++;
+                ushort id = _cellIsland[i];
+                if (id == ushort.MaxValue || !ids.Contains(id))
+                {
+                    continue;
+                }
+                _startMask[i] = true;
+                _startCells++;
             }
         }
 
@@ -411,7 +426,7 @@ namespace OpenWaters
 
         public static bool IsStartIsland(float wx, float wy)
         {
-            if (!Ready || _startIsland == ushort.MaxValue)
+            if (!Ready || _startMask == null || _startIsland == ushort.MaxValue)
             {
                 return false;
             }
@@ -421,7 +436,7 @@ namespace OpenWaters
             {
                 return false;
             }
-            return _cellIsland[y * _size + x] == _startIsland;
+            return _startMask[y * _size + x];
         }
 
         public static bool TryGetIslandAt(float wx, float wy, out IslandInfo info)

@@ -18,21 +18,10 @@ namespace OpenWaters
         private const float PeakProtectEnd = 0.45f;
         private const float MaxOffset = 0.6f;
         private const float MountainThreshold = 0.4f;
-        private const float StartMountainSuppressStart = 0.34f;
-        private const float StartMountainSuppressFactor = 0.35f;
-        private const float StartMountainCap = 0.39f;
-        private const float StartSafeRadius = 250f;
 
-        private static World _world;
-        private static float _offset0;
-        private static float _offset1;
-        private static float _minMountainDistance = 1000f;
-        private static float _heightOffset;
-        private static bool _useGlobalNoise;
-
-        public static bool Active { get; private set; }
-        public static bool UsesGlobalNoise => _useGlobalNoise;
-        public static float HeightOffset => _heightOffset;
+        public static bool Active => GenerationSession.Current.Active;
+        public static bool UsesGlobalNoise => GenerationSession.Current.UsesGlobalNoise;
+        public static float HeightOffset => GenerationSession.Current.HeightOffset;
 
         private static bool IsFew => OpenWatersSettings.IslandAmount == OpenWatersSettings.FewIslands;
         private static float FrequencyScale =>
@@ -44,27 +33,21 @@ namespace OpenWaters
 
         public static void SetWorld(World world)
         {
-            _world = world;
-            Active = false;
-            _heightOffset = 0f;
-            _useGlobalNoise = false;
-            IslandAnalysis.Clear();
+            GenerationSession.Begin(world);
         }
 
         public static void Cancel()
         {
-            Active = false;
-            _heightOffset = 0f;
-            _useGlobalNoise = false;
-            IslandAnalysis.Clear();
+            GenerationSession.Current.Cancel();
         }
 
         public static void Build(WorldGenerator generator)
         {
-            Active = false;
-            _heightOffset = 0f;
+            GenerationSession session = GenerationSession.Current;
+            session.Active = false;
+            session.HeightOffset = 0f;
 
-            World world = _world;
+            World world = session.World;
             if (world == null || world.m_menu || !OpenWatersSettings.AffectsGeneration)
             {
                 return;
@@ -76,9 +59,9 @@ namespace OpenWaters
                 FieldInfo offset0 = AccessTools.Field(typeof(WorldGenerator), "m_offset0");
                 FieldInfo offset1 = AccessTools.Field(typeof(WorldGenerator), "m_offset1");
                 FieldInfo mountainDistance = AccessTools.Field(typeof(WorldGenerator), "m_minMountainDistance");
-                _offset0 = (float)offset0.GetValue(generator);
-                _offset1 = (float)offset1.GetValue(generator);
-                _minMountainDistance = mountainDistance != null ? (float)mountainDistance.GetValue(generator) : 1000f;
+                session.Offset0 = (float)offset0.GetValue(generator);
+                session.Offset1 = (float)offset1.GetValue(generator);
+                session.MinMountainDistance = mountainDistance != null ? (float)mountainDistance.GetValue(generator) : 1000f;
             }
             catch (Exception exception)
             {
@@ -107,11 +90,11 @@ namespace OpenWaters
             int size = CalibrationSamples;
             float radius = OpenWatersSettings.WorldRadius + EdgeSize;
             float cellSize = 2f * radius / size;
-            _useGlobalNoise = OpenWatersSettings.IslandAmount != OpenWatersSettings.VanillaIslandAmount;
+            session.UsesGlobalNoise = OpenWatersSettings.IslandAmount != OpenWatersSettings.VanillaIslandAmount;
 
-            if (!_useGlobalNoise)
+            if (!session.UsesGlobalNoise)
             {
-                _heightOffset = 0f;
+                session.HeightOffset = 0f;
                 if (!OpenWatersSettings.ExcludeMountains &&
                     OpenWatersSettings.StartBiomeLimit == 0)
                 {
@@ -119,7 +102,7 @@ namespace OpenWaters
                 }
 
                 IslandAnalysis.Build(generator, radius);
-                Active = true;
+                session.Active = true;
                 long localElapsedMs = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
                 OpenWatersPlugin.Log.LogInfo(
                     $"[Gen] Start island only: preset=Vanilla, startIsland={IslandAnalysis.StartCells}, " +
@@ -150,7 +133,7 @@ namespace OpenWaters
                         vanillaLand++;
                     }
 
-                    float value = ComputeBaseHeight(wx, wy, 0f);
+                    float value = ComputeBaseHeight(wx, wy, 0f, session);
                     modified[index] = value;
                     fade[index] = GetStartFade(wx, wy);
                     peak[index] = GetPeakFactor(value);
@@ -178,8 +161,8 @@ namespace OpenWaters
                 offset = (low + high) * 0.5f;
             }
 
-            _heightOffset = offset;
-            Active = true;
+            session.HeightOffset = offset;
+            session.Active = true;
 
             int startIslandCells = 0;
             if (OpenWatersSettings.ExcludeMountains ||
@@ -235,80 +218,16 @@ namespace OpenWaters
             return mountains;
         }
 
-        public static bool TryGetStartBiomeOverride(
-            float wx,
-            float wy,
-            Heightmap.Biome originalBiome,
-            out Heightmap.Biome biome)
+        public static float ApplyGlobal(GenerationSession session, float wx, float wy)
         {
-            biome = Heightmap.Biome.None;
-            int limit = OpenWatersSettings.StartBiomeLimit;
-            if ((limit != 1 && limit != 2) || !IslandAnalysis.IsStartIsland(wx, wy))
-            {
-                return false;
-            }
-
-            if (limit == 1)
-            {
-                biome = Heightmap.Biome.Meadows;
-                return true;
-            }
-
-            float distance = Mathf.Sqrt(wx * wx + wy * wy);
-            if (distance <= StartSafeRadius ||
-                originalBiome == Heightmap.Biome.Meadows)
-            {
-                biome = Heightmap.Biome.Meadows;
-                return true;
-            }
-
-            if (originalBiome == Heightmap.Biome.BlackForest)
-            {
-                biome = Heightmap.Biome.BlackForest;
-                return true;
-            }
-
-            float noise = Mathf.PerlinNoise((wx + 1000f) * 0.0015f, (wy + 1000f) * 0.0015f);
-            biome = noise > 0.5f ? Heightmap.Biome.Meadows : Heightmap.Biome.BlackForest;
-            return true;
+            float value = CompressMountains(ComputeBaseHeight(wx, wy, session.HeightOffset, session));
+            return StartIslandModifier.Apply(value, wx, wy);
         }
-
-        private static float SuppressStartMountains(float value)
-        {
-            if (value <= StartMountainSuppressStart)
-            {
-                return value;
-            }
-
-            float compressed = StartMountainSuppressStart +
-                               (value - StartMountainSuppressStart) * StartMountainSuppressFactor;
-            return Mathf.Min(compressed, StartMountainCap);
-        }
-
-        public static float ApplyGlobal(float wx, float wy)
-        {
-            float value = CompressMountains(ComputeBaseHeight(wx, wy, _heightOffset));
-            if (OpenWatersSettings.ExcludeMountains && IslandAnalysis.IsStartIsland(wx, wy))
-            {
-                value = SuppressStartMountains(value);
-            }
-            return value;
-        }
-
-        public static float ApplyStartIslandOnly(float value, float wx, float wy)
-        {
-            if (OpenWatersSettings.ExcludeMountains && IslandAnalysis.IsStartIsland(wx, wy))
-            {
-                return SuppressStartMountains(value);
-            }
-            return value;
-        }
-
-        private static float ComputeBaseHeight(float wx, float wy, float offset)
+        private static float ComputeBaseHeight(float wx, float wy, float offset, GenerationSession session)
         {
             float distance = Mathf.Sqrt(wx * wx + wy * wy);
-            double nx = wx + 100000.0 + _offset0;
-            double ny = wy + 100000.0 + _offset1;
+            double nx = wx + 100000.0 + session.Offset0;
+            double ny = wy + 100000.0 + session.Offset1;
 
             float value = 0f;
             value += Perlin(nx * 0.002 * 0.5 * FrequencyScale, ny * 0.002 * 0.5 * FrequencyScale)
@@ -343,13 +262,13 @@ namespace OpenWaters
                 return value;
             }
 
-            if (distance < _minMountainDistance && value > 0.28f)
+            if (distance < session.MinMountainDistance && value > 0.28f)
             {
                 float t = Mathf.Clamp01((value - 0.28f) / 0.1f);
                 value = Mathf.Lerp(
                     Mathf.Lerp(0.28f, 0.38f, t),
                     value,
-                    LerpStep(_minMountainDistance - 400f, _minMountainDistance, distance));
+                    LerpStep(session.MinMountainDistance - 400f, session.MinMountainDistance, distance));
             }
 
             return value;

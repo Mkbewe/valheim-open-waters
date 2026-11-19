@@ -13,6 +13,8 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $repoRoot "manifest.json"
+$packagePath = Join-Path $repoRoot "package.json"
+$packageLockPath = Join-Path $repoRoot "package-lock.json"
 $changelogPath = Join-Path $repoRoot "CHANGELOG.md"
 $readmePath = Join-Path $repoRoot "README.md"
 $licensePath = Join-Path $repoRoot "LICENSE"
@@ -54,6 +56,30 @@ if (-not $pluginVersionMatch.Success) {
 $pluginVersion = $pluginVersionMatch.Groups[1].Value
 if ($pluginVersion -ne $version) {
     throw "Version mismatch: Plugin.cs has '$pluginVersion', manifest.json has '$version'."
+}
+
+if (-not (Test-Path -LiteralPath $packagePath)) {
+    throw "package.json not found."
+}
+
+if (-not (Test-Path -LiteralPath $packageLockPath)) {
+    throw "package-lock.json not found."
+}
+
+$package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
+$packageVersion = [string]$package.version
+if ($packageVersion -ne $version) {
+    throw "Version mismatch: package.json has '$packageVersion', manifest.json has '$version'."
+}
+
+$packageLock = Get-Content -LiteralPath $packageLockPath -Raw
+$lockVersionMatch = [regex]::Match($packageLock, '(?m)^\s{2}"version"\s*:\s*"([^"]+)"')
+if (-not $lockVersionMatch.Success) {
+    throw "Could not read the root version from package-lock.json."
+}
+$lockVersion = $lockVersionMatch.Groups[1].Value
+if ($lockVersion -ne $version) {
+    throw "Version mismatch: package-lock.json has '$lockVersion', manifest.json has '$version'."
 }
 
 Add-Type -AssemblyName System.Drawing

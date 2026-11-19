@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Core unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run Core tests
+        run: dotnet test tests/OpenWaters.Core.Tests/OpenWaters.Core.Tests.csproj --nologo --verbosity minimal
+
+      - name: Check whitespace
+        if: github.event_name == 'pull_request'
+        run: git diff --check "origin/${{ github.event.pull_request.base.ref }}...HEAD"

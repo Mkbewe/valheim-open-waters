@@ -2,7 +2,7 @@
 
 Open Waters is licensed under the MIT License (see [LICENSE](LICENSE)).
 
-Copyright (c) 2026 Kacper Bobrowski (Mkbewe). See [LICENSE](LICENSE) for the full license text.
+Copyright (c) 2026 Kacper Bobrowski (MkbewePP). See [LICENSE](LICENSE) for the full license text.
 
 ## Inspiration and knowledge (no code copied)
 
@@ -21,8 +21,14 @@ Copyright (c) 2026 Kacper Bobrowski (Mkbewe). See [LICENSE](LICENSE) for the ful
   Provided by BepInEx; not bundled.
   <https://github.com/BepInEx/HarmonyX>
 
+## Art assets
+
+The icons in `assets/icons/` were created by the project author using AI-assisted
+tooling and are released under the same MIT License as this project. No third-party
+artwork is included.
+
 ## Game content
 
 Valheim and its assets are property of Iron Gate Studio and Coffee Stain Studios.
-No game code, binaries, or art assets are included in this repository.
+No game code, binaries, or game art assets are included in this repository.
 Decompilation of the game assembly is used only to understand its API and behavior.

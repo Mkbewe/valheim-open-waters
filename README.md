@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icons/logo-256.png" alt="Open Waters" width="160" />
+</p>
+
 # Open Waters
 
 Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases open ocean. It keeps vanilla coastlines by lowering terrain instead of removing land.

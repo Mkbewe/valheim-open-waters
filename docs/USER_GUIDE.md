@@ -1,6 +1,6 @@
 # Open Waters — User Guide
 
-Open Waters is an alpha (0.1.0) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It is currently intended for **single-player**, but [manual synchronization](#playing-with-someone-else-manual-synchronization) is possible.
+Open Waters is an alpha (0.1.0) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It is currently intended for **single-player**. Multiplayer is not officially supported; [manual synchronization](#manual-synchronization-experimental-unsupported) is an experimental, unsupported workaround.
 
 ## Requirements
 
@@ -129,9 +129,9 @@ If Valheim or a dedicated server was started with a custom `-savedir`, use that 
 
 The sidecar stores: preset, world radius, general biome limit, starting-island biome limit and the `Remove mountains` flag. It is tied to the world name and seed.
 
-## Playing with someone else (manual synchronization)
+## Manual synchronization (experimental, unsupported)
 
-There is no automatic server-to-client sync yet, so every player must use **the same mod version and the same settings** before the world is generated on their machine:
+Open Waters does not officially support multiplayer or automatic server-to-client synchronization. If you still want to try it, every player must use **the same mod version and the same settings** before the world is generated on their machine:
 
 1. Install the same Open Waters version everywhere.
 2. Make sure the BepInEx config is identical on every machine. The file is:
@@ -143,7 +143,7 @@ There is no automatic server-to-client sync yet, so every player must use **the 
    The world name and seed must match; without the sidecar the client falls back to Vanilla and generates a different world.
 4. Create/load the world only after all clients are configured. The in-game panel cannot change settings on an existing world.
 
-Treat multiplayer as experimental until automatic synchronization is implemented.
+Treat multiplayer as experimental and unsupported until automatic synchronization and dedicated-server support are implemented.
 
 ## Advanced configuration
 
@@ -170,7 +170,7 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 
 ## Known limitations (alpha)
 
-- **Single-player recommended.** Settings are local; there is no automatic server-to-client synchronization. [Manual synchronization](#playing-with-someone-else-manual-synchronization) is possible, but a client without the same settings will generate a different world.
+- **Single-player recommended.** Settings are local; there is no automatic server-to-client synchronization. [Manual synchronization](#manual-synchronization-experimental-unsupported) is an unsupported workaround; a client without the same settings will generate a different world.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
 - `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
 - No disk cache for terrain calibration.

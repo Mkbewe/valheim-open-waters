@@ -25,6 +25,7 @@
     <Compile Include="..\..\src\OpenWaters\Core\NoiseField.cs" Link="NoiseField.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\LandCalibrator.cs" Link="LandCalibrator.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\WorldSettings.cs" Link="WorldSettings.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\StartIslandSelector.cs" Link="StartIslandSelector.cs" />
   </ItemGroup>
 
 </Project>

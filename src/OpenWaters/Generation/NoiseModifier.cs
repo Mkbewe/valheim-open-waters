@@ -36,6 +36,54 @@ namespace OpenWaters
             GenerationSession.Current.Cancel();
         }
 
+        public static void LogGeneratorState(string scope, WorldGenerator generator)
+        {
+            if (generator == null)
+            {
+                OpenWatersPlugin.Log.LogWarning($"[Gen] Generator state ({scope}): no generator.");
+                return;
+            }
+
+            World world = generator.m_world;
+            string worldName = world != null ? world.m_worldName : "none";
+            string seedName = world != null ? world.m_seedName : "none";
+            int seed = world != null ? world.m_seed : 0;
+            int version = world != null ? world.m_worldGenVersion : -1;
+            OpenWatersPlugin.Log.LogInfo(
+                $"[Gen] Generator state: scope={scope}, world='{worldName}', seedName='{seedName}', " +
+                $"seed={seed}, version={version}, " +
+                $"offset0={ReadFloat(generator, "m_offset0"):0.0000}, " +
+                $"offset1={ReadFloat(generator, "m_offset1"):0.0000}, " +
+                $"riverSeed={ReadInt(generator, "m_riverSeed")}, " +
+                $"streamSeed={ReadInt(generator, "m_streamSeed")}, " +
+                $"rivers={ReadCount(generator, "m_rivers")}, " +
+                $"streams={ReadCount(generator, "m_streams")}, " +
+                $"lakes={ReadCount(generator, "m_lakes")}.");
+        }
+
+        private static float ReadFloat(WorldGenerator generator, string field)
+        {
+            FieldInfo info = AccessTools.Field(typeof(WorldGenerator), field);
+            return info != null ? (float)info.GetValue(generator) : float.NaN;
+        }
+
+        private static int ReadInt(WorldGenerator generator, string field)
+        {
+            FieldInfo info = AccessTools.Field(typeof(WorldGenerator), field);
+            return info != null ? (int)info.GetValue(generator) : -1;
+        }
+
+        private static int ReadCount(WorldGenerator generator, string field)
+        {
+            FieldInfo info = AccessTools.Field(typeof(WorldGenerator), field);
+            if (info == null)
+            {
+                return -1;
+            }
+            System.Collections.ICollection collection = info.GetValue(generator) as System.Collections.ICollection;
+            return collection != null ? collection.Count : 0;
+        }
+
         public static void Build(WorldGenerator generator)
         {
             GenerationSession session = GenerationSession.Current;

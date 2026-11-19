@@ -96,6 +96,11 @@ namespace OpenWaters
         public static bool Begin(WorldGenerator generator, float radius)
         {
             Clear();
+            World world = generator != null ? generator.m_world : null;
+            string scope = world != null && world.m_worldName == OpenWatersSettings.PreviewWorldName
+                ? "preview"
+                : "world";
+            NoiseModifier.LogGeneratorState(scope, generator);
             MethodInfo biomeMethod = AccessTools.Method(
                 typeof(WorldGenerator),
                 "GetBiome",
@@ -279,54 +284,35 @@ namespace OpenWaters
             int anchorX = Mathf.Clamp(Mathf.FloorToInt((_anchor.x + radius) / cellSize), 0, size - 1);
             int anchorY = Mathf.Clamp(Mathf.FloorToInt((_anchor.y + radius) / cellSize), 0, size - 1);
             int anchorIndex = anchorY * size + anchorX;
-            IslandInfo anchorInfo = land[anchorIndex]
-                ? _islands[remap[labels[anchorIndex]]]
-                : null;
+            int anchorId = land[anchorIndex] ? remap[labels[anchorIndex]] : -1;
             int minCells = Mathf.Max(1, Mathf.CeilToInt(MinStartIslandAreaKm2 * 1000000f / (cellSize * cellSize)));
 
-            IslandInfo chosen = anchorInfo != null && anchorInfo.Cells >= minCells
-                ? anchorInfo
-                : null;
-            if (chosen == null)
+            IslandCandidate[] candidates = new IslandCandidate[_islands.Length];
+            for (int i = 0; i < _islands.Length; i++)
             {
-                float best = float.MaxValue;
-                foreach (IslandInfo info in _islands)
+                IslandInfo info = _islands[i];
+                candidates[i] = new IslandCandidate
                 {
-                    if (info.Cells < minCells)
-                    {
-                        continue;
-                    }
-                    if (anchorInfo != null &&
-                        BBoxDistanceSqr(anchorInfo, info, cellSize, radius) > RiverSeamRadius * RiverSeamRadius)
-                    {
-                        continue;
-                    }
-                    float minX = info.MinX * cellSize - radius;
-                    float maxX = (info.MaxX + 1) * cellSize - radius;
-                    float minY = info.MinY * cellSize - radius;
-                    float maxY = (info.MaxY + 1) * cellSize - radius;
-                    float dx = Mathf.Max(0f, Mathf.Max(minX - _anchor.x, _anchor.x - maxX));
-                    float dy = Mathf.Max(0f, Mathf.Max(minY - _anchor.y, _anchor.y - maxY));
-                    float distance = dx * dx + dy * dy;
-                    if (distance < best && distance <= AnchorSearchRadius * AnchorSearchRadius)
-                    {
-                        best = distance;
-                        chosen = info;
-                    }
-                }
-            }
-            if (chosen == null)
-            {
-                chosen = anchorInfo;
-                if (chosen != null && chosen.Cells < minCells)
-                {
-                    OpenWatersPlugin.Log.LogWarning(
-                        $"[Gen] No island >= {minCells} cells near the anchor; keeping the small component '{chosen.Id}'.");
-                }
+                    Id = info.Id,
+                    Cells = info.Cells,
+                    MinX = info.MinX,
+                    MaxX = info.MaxX,
+                    MinY = info.MinY,
+                    MaxY = info.MaxY
+                };
             }
 
-            _startIsland = chosen != null ? chosen.Id : ushort.MaxValue;
-            BuildStartMask(chosen, anchorInfo, minCells);
+            StartIslandSelection selection = StartIslandSelector.Select(
+                candidates, anchorId, _anchor.x, _anchor.y, minCells,
+                cellSize, radius, AnchorSearchRadius, RiverSeamRadius);
+            _startIsland = selection.StartId >= 0 ? (ushort)selection.StartId : ushort.MaxValue;
+            BuildStartMask(selection);
+            if (selection.StartId >= 0 && selection.StartId == anchorId &&
+                _islands[anchorId].Cells < minCells)
+            {
+                OpenWatersPlugin.Log.LogWarning(
+                    $"[Gen] No island >= {minCells} cells near the anchor; keeping the small component '{anchorId}'.");
+            }
 
             long elapsedMs = (DateTime.UtcNow.Ticks - _started) / TimeSpan.TicksPerMillisecond;
             IslandInfo start = StartIsland;
@@ -342,41 +328,22 @@ namespace OpenWaters
             return true;
         }
 
-        private static float BBoxDistanceSqr(
-            IslandInfo first,
-            IslandInfo second,
-            float cellSize,
-            float radius)
-        {
-            float firstMinX = first.MinX * cellSize - radius;
-            float firstMaxX = (first.MaxX + 1) * cellSize - radius;
-            float firstMinY = first.MinY * cellSize - radius;
-            float firstMaxY = (first.MaxY + 1) * cellSize - radius;
-            float secondMinX = second.MinX * cellSize - radius;
-            float secondMaxX = (second.MaxX + 1) * cellSize - radius;
-            float secondMinY = second.MinY * cellSize - radius;
-            float secondMaxY = (second.MaxY + 1) * cellSize - radius;
-            float dx = Mathf.Max(0f, Mathf.Max(firstMinX - secondMaxX, secondMinX - firstMaxX));
-            float dy = Mathf.Max(0f, Mathf.Max(firstMinY - secondMaxY, secondMinY - firstMaxY));
-            return dx * dx + dy * dy;
-        }
-
-        private static void BuildStartMask(IslandInfo start, IslandInfo anchor, int minCells)
+        private static void BuildStartMask(StartIslandSelection selection)
         {
             _startCells = 0;
             _absorbed = 0;
             _startMask = new bool[_cellIsland == null ? 0 : _cellIsland.Length];
-            if (start == null || _cellIsland == null)
+            if (selection.StartId < 0 || _cellIsland == null)
             {
                 return;
             }
 
-            HashSet<ushort> ids = new HashSet<ushort> { start.Id };
-            if (anchor != null && anchor.Id != start.Id && anchor.Cells < minCells)
+            HashSet<ushort> ids = new HashSet<ushort> { (ushort)selection.StartId };
+            foreach (int id in selection.AbsorbedIds)
             {
-                ids.Add(anchor.Id);
-                _absorbed++;
+                ids.Add((ushort)id);
             }
+            _absorbed = selection.AbsorbedIds.Count;
 
             for (int i = 0; i < _cellIsland.Length; i++)
             {

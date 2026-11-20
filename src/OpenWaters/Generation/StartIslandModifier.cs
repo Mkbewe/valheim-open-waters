@@ -16,7 +16,7 @@ namespace OpenWaters
             out Heightmap.Biome biome)
         {
             biome = Heightmap.Biome.None;
-            int limit = OpenWatersSettings.StartBiomeLimit;
+            int limit = GenerationSession.Current.Settings.StartBiomeLimit;
             if ((limit != 1 && limit != 2) || !IslandAnalysis.IsStartIsland(wx, wy))
             {
                 return false;
@@ -48,7 +48,8 @@ namespace OpenWaters
 
         public static float Apply(float value, float wx, float wy)
         {
-            if (!OpenWatersSettings.ExcludeMountains || !IslandAnalysis.IsStartIsland(wx, wy))
+            if (!GenerationSession.Current.Settings.ExcludeMountains ||
+                !IslandAnalysis.IsStartIsland(wx, wy))
             {
                 return value;
             }

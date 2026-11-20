@@ -30,10 +30,10 @@ namespace OpenWaters
             public int MaxY;
         }
 
-        public static IEnumerator Render(PreviewResult result)
+        public static IEnumerator Render(PreviewResult result, WorldSettings settings)
         {
             int size = Samples;
-            float radius = OpenWatersSettings.WorldRadius + WaterEdge;
+            float radius = settings.WorldRadius + WaterEdge;
             float cellSize = 2f * radius / size;
             Color32[] pixels = new Color32[size * size];
             Color32[] biomePixels = new Color32[size * size];

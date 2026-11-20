@@ -1,154 +1,63 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using HarmonyLib;
 
 namespace OpenWaters
 {
+    internal enum SidecarStatus
+    {
+        Ok,
+        Missing,
+        Invalid
+    }
+
     internal static class WorldSettingsStore
     {
         private const string SidecarFileName = "OpenWaters.worldSettings";
 
-        private static readonly Dictionary<string, WorldSettings> Pending =
-            new Dictionary<string, WorldSettings>();
-
         private static ISidecarStorage _storage = new FileSidecarStorage();
+
+        public static SidecarStatus LastStatus { get; private set; } = SidecarStatus.Missing;
+        public static string LastMessage { get; private set; } = string.Empty;
 
         internal static void SetStorage(ISidecarStorage storage)
         {
             _storage = storage ?? new FileSidecarStorage();
         }
 
-        public static void Capture(string name, string seed)
+        public static WorldSettings FromCurrentSettings(string seed)
         {
-            if (!OpenWatersSettings.Enabled || string.IsNullOrEmpty(name) || string.IsNullOrEmpty(seed))
-            {
-                return;
-            }
-
-            Pending[GetKey(name, seed)] = new WorldSettings(
+            return new WorldSettings(
                 OpenWatersSettings.IslandAmount,
                 OpenWatersSettings.WorldRadius,
                 OpenWatersSettings.BiomeLimit,
                 OpenWatersSettings.StartBiomeLimit,
-                OpenWatersSettings.ExcludeMountains);
-
-            OpenWatersPlugin.Log.LogInfo(
-                $"[Settings] Captured for '{name}' seed='{seed}': preset={OpenWatersSettings.IslandAmountName}, radius={OpenWatersSettings.WorldRadius}");
+                OpenWatersSettings.ExcludeMountains,
+                OpenWatersPlugin.PluginVersion,
+                OpenWatersSettings.FewLandFraction,
+                OpenWatersSettings.FewFrequencyScale,
+                OpenWatersSettings.FewPeakProtection,
+                OpenWatersSettings.FewDetailDamping,
+                OpenWatersSettings.FewMountainCompressionStart,
+                OpenWatersSettings.FewMountainCompressionFactor,
+                OpenWatersSettings.MediumLandFraction,
+                OpenWatersSettings.MediumFrequencyScale,
+                OpenWatersSettings.MediumPeakProtection,
+                OpenWatersSettings.MediumDetailDamping);
         }
 
-        public static void Persist(World world)
+        public static bool TryWriteForNewWorld(string name, string seed, out string error)
         {
-            if (!OpenWatersSettings.Enabled || !CanUseWorldSettings(world))
+            error = null;
+            if (string.IsNullOrEmpty(name) || seed == null)
             {
-                return;
-            }
-
-            string key = GetKey(world.m_worldName, world.m_seedName);
-            if (!Pending.TryGetValue(key, out WorldSettings snapshot))
-            {
-                return;
-            }
-
-            if (WriteSidecar(world, snapshot))
-            {
-                Pending.Remove(key);
-            }
-        }
-
-        public static void Apply(World world)
-        {
-            if (world == null || world.m_menu || world.m_worldName == OpenWatersSettings.PreviewWorldName)
-            {
-                return;
-            }
-
-            if (!OpenWatersSettings.Enabled)
-            {
-                string sidecarPath = GetSidecarPath(world);
-                if (sidecarPath != null && _storage.Exists(sidecarPath))
-                {
-                    OpenWatersPlugin.Log.LogWarning(
-                        $"[Settings] Open Waters disabled; '{world.m_worldName}' has a sidecar, but generation changes are skipped.");
-                }
-                else
-                {
-                    OpenWatersPlugin.Log.LogInfo(
-                        $"[Settings] Open Waters disabled; skipping world settings for '{world.m_worldName}'.");
-                }
-                return;
-            }
-
-            string key = GetKey(world.m_worldName, world.m_seedName);
-            if (Pending.TryGetValue(key, out WorldSettings pending))
-            {
-                ApplySnapshot(pending);
-                if (WriteSidecar(world, pending))
-                {
-                    Pending.Remove(key);
-                }
-                OpenWatersPlugin.Log.LogInfo(
-                    $"[Settings] Applied pending settings for '{world.m_worldName}' seed='{world.m_seedName}': " +
-                    $"preset={OpenWatersSettings.IslandAmountName}, radius={OpenWatersSettings.WorldRadius}");
-                return;
-            }
-
-            if (TryReadSidecar(world, out WorldSettings saved))
-            {
-                ApplySnapshot(saved);
-                OpenWatersPlugin.Log.LogInfo(
-                    $"[Settings] Loaded sidecar for '{world.m_worldName}' seed='{world.m_seedName}': " +
-                    $"preset={OpenWatersSettings.IslandAmountName}, radius={OpenWatersSettings.WorldRadius}");
-                return;
-            }
-
-            ApplySnapshot(WorldSettings.Vanilla);
-            OpenWatersPlugin.Log.LogWarning(
-                $"[Settings] No usable sidecar for '{world.m_worldName}' seed='{world.m_seedName}'; using Vanilla to avoid applying another world's preset.");
-        }
-
-        private static bool CanUseWorldSettings(World world)
-        {
-            return world != null &&
-                   !world.m_menu &&
-                   world.m_worldName != OpenWatersSettings.PreviewWorldName &&
-                   !string.IsNullOrEmpty(world.m_worldName);
-        }
-
-        private static void ApplySnapshot(WorldSettings snapshot)
-        {
-            OpenWatersSettings.IslandAmount = snapshot.IslandAmount;
-            OpenWatersSettings.WorldRadius = snapshot.WorldRadius;
-            OpenWatersSettings.BiomeLimit = snapshot.BiomeLimit;
-            OpenWatersSettings.StartBiomeLimit = snapshot.StartBiomeLimit;
-            OpenWatersSettings.ExcludeMountains = snapshot.ExcludeMountains;
-        }
-
-        private static bool TryReadSidecar(World world, out WorldSettings settings)
-        {
-            settings = null;
-            string path = GetSidecarPath(world);
-            if (path == null || !_storage.Exists(path))
-            {
+                error = "World name is empty.";
                 return false;
             }
 
-            try
-            {
-                return WorldSettingsCodec.TryParse(_storage.Read(path), world.m_seedName, out settings);
-            }
-            catch (Exception exception)
-            {
-                OpenWatersPlugin.Log.LogWarning($"[Settings] Failed to read '{path}': {exception.Message}");
-                return false;
-            }
-        }
-
-        private static bool WriteSidecar(World world, WorldSettings settings)
-        {
-            string path = GetSidecarPath(world);
+            string path = GetSidecarPath(name);
             if (path == null)
             {
+                error = "Could not resolve the local save directory.";
                 return false;
             }
 
@@ -161,42 +70,127 @@ namespace OpenWaters
                 }
 
                 string temporaryPath = path + ".tmp";
-                _storage.Write(temporaryPath, WorldSettingsCodec.Serialize(settings, world.m_seedName));
+                _storage.Write(
+                    temporaryPath,
+                    WorldSettingsCodec.Serialize(FromCurrentSettings(seed), seed));
                 if (_storage.Exists(path))
                 {
                     _storage.Delete(path);
                 }
                 _storage.Move(temporaryPath, path);
-
                 OpenWatersPlugin.Log.LogInfo($"[Settings] Saved sidecar '{path}'.");
                 return true;
             }
             catch (Exception exception)
             {
-                OpenWatersPlugin.Log.LogWarning(
-                    $"[Settings] Failed to write sidecar for '{world.m_worldName}': {exception.Message}");
+                error = exception.Message;
+                OpenWatersPlugin.Log.LogError($"[Settings] Failed to write sidecar '{path}': {exception}");
                 return false;
             }
         }
 
-        private static string GetSidecarPath(World world)
+        public static WorldSettings Apply(World world)
         {
+            LastStatus = SidecarStatus.Missing;
+            LastMessage = string.Empty;
+            if (world == null || world.m_menu)
+            {
+                return WorldSettings.Vanilla;
+            }
+            if (world.m_worldName == OpenWatersSettings.PreviewWorldName)
+            {
+                LastStatus = SidecarStatus.Ok;
+                return FromCurrentSettings(world.m_seedName);
+            }
+            if (!OpenWatersSettings.Enabled)
+            {
+                LastMessage = "Open Waters is disabled; generation stays vanilla.";
+                OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
+                return WorldSettings.Vanilla;
+            }
+
+            string path = GetSidecarPath(world.m_worldName);
+            if (path == null || !_storage.Exists(path))
+            {
+                LastMessage = $"No sidecar for '{world.m_worldName}'; using vanilla generation.";
+                OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
+                return WorldSettings.Vanilla;
+            }
+
+            WorldSettings settings;
             try
             {
-                string directory = world.GetSaveDirectory(FileHelpers.FileSource.Local);
+                if (!WorldSettingsCodec.TryParse(_storage.Read(path), world.m_seedName, out settings))
+                {
+                    LastStatus = SidecarStatus.Invalid;
+                    LastMessage = $"Sidecar for '{world.m_worldName}' is unreadable or has an incompatible format.";
+                    OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
+                    return WorldSettings.Vanilla;
+                }
+            }
+            catch (Exception exception)
+            {
+                LastStatus = SidecarStatus.Invalid;
+                LastMessage = $"Failed to read sidecar for '{world.m_worldName}': {exception.Message}";
+                OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
+                return WorldSettings.Vanilla;
+            }
+
+            if (!settings.IsGeneratorCompatible)
+            {
+                int found = settings.GeneratorVersionValue;
+                settings = WorldSettings.Vanilla;
+                LastStatus = SidecarStatus.Invalid;
+                LastMessage =
+                    $"World '{world.m_worldName}' was generated by generator version {found}, " +
+                    $"but this mod supports {WorldSettings.SupportedVersionsText}.";
+                OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
+                return settings;
+            }
+
+            LastStatus = SidecarStatus.Ok;
+            LastMessage = $"Loaded settings for '{world.m_worldName}': preset={settings.IslandAmount}, radius={settings.WorldRadius}.";
+            OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
+            return settings;
+        }
+
+        public static SidecarStatus ValidateForLoad(World world)
+        {
+            Apply(world);
+            return LastStatus;
+        }
+
+        public static string GetDisplayName(WorldSettings settings)
+        {
+            return settings.IslandAmount == WorldSettings.FewIslands ? "Few" :
+                settings.IslandAmount == WorldSettings.MediumIslands ? "Medium" : "Vanilla";
+        }
+
+        private static string GetSidecarPath(string worldName)
+        {
+            if (string.IsNullOrEmpty(worldName) || worldName == "." || worldName == "..")
+            {
+                return null;
+            }
+            foreach (char invalid in Path.GetInvalidFileNameChars())
+            {
+                if (worldName.IndexOf(invalid) >= 0)
+                {
+                    return null;
+                }
+            }
+
+            try
+            {
+                string directory = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local) + "/" + worldName + "/";
                 return Path.Combine(directory, SidecarFileName);
             }
             catch (Exception exception)
             {
                 OpenWatersPlugin.Log.LogWarning(
-                    $"[Settings] Failed to resolve save directory for '{world.m_worldName}': {exception.Message}");
+                    $"[Settings] Failed to resolve save directory for '{worldName}': {exception.Message}");
                 return null;
             }
-        }
-
-        private static string GetKey(string name, string seed)
-        {
-            return name + "|" + seed;
         }
     }
 }

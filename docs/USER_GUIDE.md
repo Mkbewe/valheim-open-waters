@@ -126,7 +126,9 @@ This is where the world's local files (`.db`, `.fwl`, map caches) live. The path
 
 If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If a world has no usable sidecar, generation falls back to Vanilla rather than applying another world's preset.
 
-The sidecar stores: preset, world radius, general biome limit, starting-island biome limit and the `Remove mountains` flag. It is tied to the world name and seed.
+The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion` and the seed. Changing the config later does not change an existing world.
+
+If a sidecar exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no sidecar is treated as vanilla.
 
 ## Manual synchronization (experimental, unsupported)
 

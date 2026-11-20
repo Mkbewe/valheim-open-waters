@@ -11,8 +11,8 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static void Prefix(ZoneSystem __instance)
         {
-            if (!OpenWatersSettings.AffectsGeneration ||
-                OpenWatersSettings.IslandAmount == OpenWatersSettings.VanillaIslandAmount)
+            WorldSettings settings = GenerationSession.Current.Settings;
+            if (!settings.AffectsGeneration || settings.IslandAmount == WorldSettings.VanillaIslands)
             {
                 return;
             }
@@ -36,7 +36,7 @@ namespace OpenWaters
                 if (location.m_minAltitude > ModdedDragonqueenMinAltitude)
                 {
                     OpenWatersPlugin.Log.LogInfo(
-                        $"[Gen] {OpenWatersSettings.IslandAmountName}: lowering Dragonqueen min altitude " +
+                        $"[Gen] {WorldSettingsStore.GetDisplayName(settings)}: lowering Dragonqueen min altitude " +
                         $"{location.m_minAltitude:0} -> {ModdedDragonqueenMinAltitude:0}");
                     location.m_minAltitude = ModdedDragonqueenMinAltitude;
                 }

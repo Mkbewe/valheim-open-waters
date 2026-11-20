@@ -7,7 +7,7 @@ namespace OpenWaters
 {
     internal static class WorldSettingsStore
     {
-        private const string SidecarFileName = "OpenWaters.settings";
+        private const string SidecarFileName = "OpenWaters.worldSettings";
 
         private static readonly Dictionary<string, WorldSettings> Pending =
             new Dictionary<string, WorldSettings>();
@@ -183,7 +183,7 @@ namespace OpenWaters
         {
             try
             {
-                string directory = world.GetSaveDirectory(world.m_fileSource);
+                string directory = world.GetSaveDirectory(FileHelpers.FileSource.Local);
                 return Path.Combine(directory, SidecarFileName);
             }
             catch (Exception exception)

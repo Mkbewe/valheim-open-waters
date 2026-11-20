@@ -1,10 +1,10 @@
-# Open Waters — User Guide
+# Open Waters - User Guide
 
 Open Waters is an alpha (0.1.0) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It is currently intended for **single-player**. Multiplayer is not officially supported; [manual synchronization](#manual-synchronization-experimental-unsupported) is an experimental, unsupported workaround.
 
 ## Requirements
 
-- Valheim 1.0.21 — this is the version the mod is tested on; older versions may work but are not verified
+- Valheim 1.0.21 - this is the version the mod is tested on; older versions may work but are not verified
 - BepInEx 5.4.x (BepInExPack Valheim)
 - The mod installed on the client (server and client sync is not implemented yet)
 
@@ -20,7 +20,7 @@ The plugin writes `BepInEx/config/valheim.openwaters.cfg` on first start. Advanc
 
 ## The New World panel
 
-The Open Waters section is added below the seed field. All controls apply to the **next world you create** — they cannot be edited on an existing world.
+The Open Waters section is added below the seed field. All controls apply to the **next world you create** - they cannot be edited on an existing world.
 
 <p align="center">
   <img src="images/new-world.png" alt="Select World menu with the New button highlighted" width="760">
@@ -68,7 +68,7 @@ Examples on the same seed with the **Few** preset:
 | Max biomes: 1 | Max biomes: 1, mountains kept |
 | --- | --- |
 | <img src="images/few-one-biome.png" alt="Few with one biome" width="300"> | <img src="images/few-one-biom-with-mountains.png" alt="Few with one biome and mountains" width="300"> |
-| The whole starting island becomes Meadows. | Biome limit is applied, but mountain peaks remain. |
+| All counted starting-island biomes become Meadows. | Biome limit is applied, but mountain peaks remain. |
 
 ### Preview
 
@@ -88,17 +88,17 @@ Peaks above `0.34` on the starting island are compressed and capped at `0.39`, w
 
 ### Max biomes
 
-- `1`: the whole starting island becomes **Meadows only**.
-- `2`: the starting island gets **two biomes — Meadows and BlackForest**. Native Meadows/BlackForest are kept; a 250 m safe radius around spawn is always Meadows; other land biomes (Plains, Mistlands, Swamp, etc.) are randomly mapped to Meadows or BlackForest.
+- `1`: the counted starting-island biomes become **Meadows only**.
+- `2`: the starting island gets **two biomes - Meadows and BlackForest**. Native Meadows/BlackForest are kept; a 250 m safe radius around spawn is always Meadows; other counted land biomes (Plains, Mistlands, Swamp, etc.) are randomly mapped to Meadows or BlackForest.
 - `Vanilla`: no changes.
 
-Mountains do **not count** toward the biome limit. Ocean, AshLands and Deep North are never overwritten by biome forcing either. Mountains disappear only through `Remove mountains`, which works on the terrain height itself.
+Mountains do **not count** toward the biome limit. They disappear only through `Remove mountains`, which works on the terrain height itself.
 
 ## Preview
 
-The preview uses a temporary world generator for the entered seed and renders 512×512 samples into a 400×400 map. Rendering is split across frames, so the game stays responsive. Up to eight previews are cached in memory.
+The preview uses a temporary world generator for the entered seed and renders 512x512 samples into a 400x400 map. Rendering is split across frames, but initial generator setup and island analysis can still freeze the game briefly. Up to eight previews are cached in memory.
 
-The preview and the generated world use the same code. If the generator is cached and you change `Max biomes` or `Remove mountains`, the cache is invalidated and rebuilt, which can take a few seconds. A preview that fails shows “Preview failed - see log"; check `BepInEx/LogOutput.log`.
+The preview and the generated world use the same code. If the generator is cached and you change `Max biomes` or `Remove mountains`, the cache is invalidated and rebuilt, which can take a few seconds. A preview that fails shows "Preview failed - see log"; check `BepInEx/LogOutput.log`.
 
 Biome colours: Meadows green, BlackForest dark green, Swamp olive, Mountain light grey, Plains yellow, Mistlands purple, AshLands red, Deep North pale blue. Swamp water is drawn with a separate muted colour. The orange marker is the spawn point.
 
@@ -118,14 +118,13 @@ Generated **Few** world in game:
 
 ## Settings per world
 
-When you create a world, the current settings are saved next to the world save in a plain-text file called `OpenWaters.settings`. The exact location depends on whether the world is stored locally or in Steam Cloud:
+When you create a world, the current settings are saved in a plain-text file called `OpenWaters.worldSettings`, in the **local** folder of that world:
 
-- **Steam Cloud world:**
-  `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\worlds\<world name>\OpenWaters.settings`
-- **Local world:**
-  `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\worlds_local\<world name>\OpenWaters.settings`
+`%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\worlds_local\<world name>\OpenWaters.worldSettings`
 
-If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later — the New World form is not needed again. If a world has no usable sidecar, generation falls back to Vanilla rather than applying another world's preset.
+This is where the world's local files (`.db`, `.fwl`, map caches) live. The path is the same for local and Steam Cloud worlds - for a cloud world the authoritative save is in Steam Cloud, so the sidecar stays on this machine and does **not** travel with the world. The sidecar is not synchronized with Steam Cloud; use local worlds or copy the file manually. See [Known limitations](#known-limitations-alpha).
+
+If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If a world has no usable sidecar, generation falls back to Vanilla rather than applying another world's preset.
 
 The sidecar stores: preset, world radius, general biome limit, starting-island biome limit and the `Remove mountains` flag. It is tied to the world name and seed.
 
@@ -137,9 +136,8 @@ Open Waters does not officially support multiplayer or automatic server-to-clien
 2. Make sure the BepInEx config is identical on every machine. The file is:
    `<VALHEIM_DIR>\BepInEx\config\valheim.openwaters.cfg`
    In an r2modman/Thunderstore profile it is inside the profile's `BepInEx\config` folder.
-3. Copy the host's `OpenWaters.settings` into the matching world save folder on each client. Use the client's `worlds` or `worlds_local` folder, depending on whether that world is stored in Steam Cloud or locally:
-   `...\worlds\<world name>\OpenWaters.settings` or
-   `...\worlds_local\<world name>\OpenWaters.settings`
+3. Copy the host's `OpenWaters.worldSettings` into the matching local world folder on each client:
+   `...\worlds_local\<world name>\OpenWaters.worldSettings`
    The world name and seed must match; without the sidecar the client falls back to Vanilla and generates a different world.
 4. Create/load the world only after all clients are configured. The in-game panel cannot change settings on an existing world.
 
@@ -171,6 +169,7 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 ## Known limitations (alpha)
 
 - **Single-player recommended.** Settings are local; there is no automatic server-to-client synchronization. [Manual synchronization](#manual-synchronization-experimental-unsupported) is an unsupported workaround; a client without the same settings will generate a different world.
+- **Steam Cloud saves are not synchronized.** `OpenWaters.worldSettings` is always written to local storage and is not uploaded with the cloud save, so another machine loading that world from the cloud will generate vanilla terrain. Use local worlds or copy the sidecar manually.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
 - `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
 - No disk cache for terrain calibration.
@@ -189,4 +188,4 @@ Include all of the following:
 - a screenshot or map excerpt,
 - `BepInEx/LogOutput.log` (and `%LOCALAPPDATA%/IronGate/Valheim/Player.log` if the game crashed).
 
-The generator log line `[Gen] Generator state: ...` contains the seed, world version, noise offsets and river counts — it makes reports reproducible.
+The generator log line `[Gen] Generator state: ...` contains the seed, world version, noise offsets and river counts - it makes reports reproducible.

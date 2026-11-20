@@ -35,20 +35,20 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - `IslandAnalysis` samples a 1024x1024 grid using `GetHeight > 30`, builds connected components and records area, centre, bounds and biome histograms.
 - The starting island is the component at world centre.
 - `Remove mountains` (default off): suppresses heights `0.34`-`0.39` on the starting island; also active with Vanilla.
-- `Max biomes` (default `Vanilla`): `1` sets the whole starting island to Meadows; `2` keeps native Meadows/BlackForest, keeps a 250 m spawn safe radius and maps other biomes to Meadows/BlackForest. Mountains, Ocean, AshLands and Deep North are skipped.
+- `Max biomes` (default `Vanilla`): `1` sets the counted starting-island biomes to Meadows; `2` keeps native Meadows/BlackForest, keeps a 250 m spawn safe radius and maps other counted biomes to Meadows/BlackForest. Mountains do not count toward the limit.
 
 ### New World UI and preview
 
 - Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
 - `Generate preview` renders a 400x400 map from 512x512 samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
 - Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
-- New-world settings are captured on creation and saved as `OpenWaters.settings` in the world save directory. Existing worlds reuse the sidecar; without one the preset is Vanilla.
+- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. Existing worlds reuse the sidecar; without one the preset is Vanilla.
 
 ## Constraints
 
 - World size is fixed; `WorldRadius` is used only for analysis and preview sampling.
 - `BiomeLimit` is stored in the sidecar but not applied.
-- Settings are local; there is no server-to-client synchronization.
+- Settings are local; there is no server-to-client synchronization. Steam Cloud saves are not synchronized: the sidecar is written to local storage and does not travel with the cloud save.
 - Calibration has no disk cache; only preview textures are cached.
 
 ## Install
@@ -73,7 +73,7 @@ To build a release package locally:
 npm run build
 ```
 
-The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.settings`.
+The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.worldSettings`.
 
 ## Releases
 

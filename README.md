@@ -42,7 +42,7 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
 - `Generate preview` renders a 400x400 map from 512x512 samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
 - Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
-- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. Existing worlds reuse the sidecar; without one the preset is Vanilla.
+- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error.
 
 ## Constraints
 

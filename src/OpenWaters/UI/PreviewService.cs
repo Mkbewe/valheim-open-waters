@@ -19,7 +19,8 @@ namespace OpenWaters
         {
             long started = DateTime.UtcNow.Ticks;
             bool initialized = false;
-            string generatorKey = GetGeneratorKey(seed);
+            WorldSettings settings = WorldSettingsStore.FromCurrentSettings(seed);
+            string generatorKey = GetGeneratorKey(settings, seed);
             try
             {
                 bool useCache = _generator != null &&
@@ -27,7 +28,7 @@ namespace OpenWaters
                                 SetGeneratorInstance(_generator);
                 if (useCache)
                 {
-                    NoiseModifier.SetWorld(_generatorWorld);
+                    NoiseModifier.SetWorld(_generatorWorld, settings);
                     GenerationSession.Current.DeferIslandAnalysis = true;
                     try
                     {
@@ -70,7 +71,7 @@ namespace OpenWaters
             {
                 yield return null;
 
-                if (OpenWatersSettings.ExcludeMountains || OpenWatersSettings.StartBiomeLimit != 0)
+                if (settings.ExcludeMountains || settings.StartBiomeLimit != 0)
                 {
                     GenerationSession.Current.BeginAnalysis();
                     bool begun = false;
@@ -78,7 +79,7 @@ namespace OpenWaters
                     {
                         begun = IslandAnalysis.Begin(
                             WorldGenerator.instance,
-                            OpenWatersSettings.WorldRadius + AnalysisWaterEdge);
+                            settings.WorldRadius + AnalysisWaterEdge);
                     }
                     catch (Exception exception)
                     {
@@ -112,7 +113,7 @@ namespace OpenWaters
                     yield return null;
                 }
 
-                IEnumerator render = PreviewRenderer.Render(result);
+                IEnumerator render = PreviewRenderer.Render(result, settings);
                 while (true)
                 {
                     bool moved = false;
@@ -149,23 +150,23 @@ namespace OpenWaters
                 $"components={result.Components}, land={result.LandPercent:P1}, time={elapsedMs} ms.");
         }
 
-        private static string GetGeneratorKey(string seed)
+        private static string GetGeneratorKey(WorldSettings settings, string seed)
         {
             StringBuilder key = new StringBuilder(seed);
-            key.Append('|').Append((int)OpenWatersSettings.IslandAmount);
-            key.Append('|').Append(OpenWatersSettings.WorldRadius);
-            key.Append('|').Append(OpenWatersSettings.StartBiomeLimit);
-            key.Append('|').Append(OpenWatersSettings.ExcludeMountains ? 1 : 0);
-            AppendConfigValue(key, OpenWatersSettings.FewLandFraction);
-            AppendConfigValue(key, OpenWatersSettings.FewFrequencyScale);
-            AppendConfigValue(key, OpenWatersSettings.FewPeakProtection);
-            AppendConfigValue(key, OpenWatersSettings.FewDetailDamping);
-            AppendConfigValue(key, OpenWatersSettings.FewMountainCompressionStart);
-            AppendConfigValue(key, OpenWatersSettings.FewMountainCompressionFactor);
-            AppendConfigValue(key, OpenWatersSettings.MediumLandFraction);
-            AppendConfigValue(key, OpenWatersSettings.MediumFrequencyScale);
-            AppendConfigValue(key, OpenWatersSettings.MediumPeakProtection);
-            AppendConfigValue(key, OpenWatersSettings.MediumDetailDamping);
+            key.Append('|').Append(settings.IslandAmount);
+            key.Append('|').Append(settings.WorldRadius);
+            key.Append('|').Append(settings.StartBiomeLimit);
+            key.Append('|').Append(settings.ExcludeMountains ? 1 : 0);
+            AppendConfigValue(key, settings.FewLandFraction);
+            AppendConfigValue(key, settings.FewFrequencyScale);
+            AppendConfigValue(key, settings.FewPeakProtection);
+            AppendConfigValue(key, settings.FewDetailDamping);
+            AppendConfigValue(key, settings.FewMountainCompressionStart);
+            AppendConfigValue(key, settings.FewMountainCompressionFactor);
+            AppendConfigValue(key, settings.MediumLandFraction);
+            AppendConfigValue(key, settings.MediumFrequencyScale);
+            AppendConfigValue(key, settings.MediumPeakProtection);
+            AppendConfigValue(key, settings.MediumDetailDamping);
             return key.ToString();
         }
 

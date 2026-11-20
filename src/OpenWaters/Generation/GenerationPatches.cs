@@ -9,12 +9,12 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static void Prefix(World world)
         {
-            WorldSettingsStore.Apply(world);
-            NoiseModifier.SetWorld(world);
+            WorldSettings settings = WorldSettingsStore.Apply(world);
+            NoiseModifier.SetWorld(world, settings);
             OpenWatersPlugin.Log.LogInfo(
                 $"[Gen] Initialize world='{world.m_worldName}' seed='{world.m_seedName}', menu={world.m_menu}, " +
-                $"enabled={OpenWatersSettings.Enabled}, preset={OpenWatersSettings.IslandAmountName}, " +
-                $"land={OpenWatersSettings.LandFraction:P0}");
+                $"preset={WorldSettingsStore.GetDisplayName(settings)}, " +
+                $"generatorVersion={settings.GeneratorVersionValue}, land={settings.LandFraction:P0}");
         }
     }
 

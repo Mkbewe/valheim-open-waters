@@ -24,11 +24,11 @@ namespace OpenWaters
         public static float HeightOffset => GenerationSession.Current.HeightOffset;
 
         private static bool IsFew =>
-            OpenWatersSettings.IslandAmount == OpenWatersSettings.FewIslands;
+            GenerationSession.Current.Settings.IslandAmount == WorldSettings.FewIslands;
 
-        public static void SetWorld(World world)
+        public static void SetWorld(World world, WorldSettings settings)
         {
-            GenerationSession.Begin(world);
+            GenerationSession.Begin(world, settings);
         }
 
         public static void Cancel()
@@ -88,9 +88,10 @@ namespace OpenWaters
         {
             GenerationSession session = GenerationSession.Current;
             session.BeginBuild();
+            WorldSettings settings = session.Settings;
 
             World world = session.World;
-            if (world == null || world.m_menu || !OpenWatersSettings.AffectsGeneration)
+            if (world == null || world.m_menu || !settings.AffectsGeneration)
             {
                 return;
             }
@@ -133,15 +134,14 @@ namespace OpenWaters
             }
 
             session.UsesGlobalNoise =
-                OpenWatersSettings.IslandAmount != OpenWatersSettings.VanillaIslandAmount;
+                settings.IslandAmount != WorldSettings.VanillaIslands;
             NoiseField field = new NoiseField(new UnityNoise(), CreateConfig(session));
             session.Field = field;
-            float radius = OpenWatersSettings.WorldRadius;
+            float radius = settings.WorldRadius;
 
             if (!session.UsesGlobalNoise)
             {
-                if (!OpenWatersSettings.ExcludeMountains &&
-                    OpenWatersSettings.StartBiomeLimit == 0)
+                if (!settings.ExcludeMountains && settings.StartBiomeLimit == 0)
                 {
                     return;
                 }
@@ -150,7 +150,7 @@ namespace OpenWaters
                 long elapsed = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
                 OpenWatersPlugin.Log.LogInfo(
                     $"[Gen] Start island only: preset=Vanilla, startIsland={IslandAnalysis.StartCells}, " +
-                    $"biomeLimit={OpenWatersSettings.StartBiomeLimit}, time={elapsed} ms.");
+                    $"biomeLimit={settings.StartBiomeLimit}, time={elapsed} ms.");
                 return;
             }
 
@@ -161,8 +161,7 @@ namespace OpenWaters
             session.MarkReady();
 
             int startIslandCells = 0;
-            if (OpenWatersSettings.ExcludeMountains ||
-                OpenWatersSettings.StartBiomeLimit != 0)
+            if (settings.ExcludeMountains || settings.StartBiomeLimit != 0)
             {
                 IslandAnalysis.Build(generator, radius + 500f);
                 startIslandCells = IslandAnalysis.StartCells;
@@ -170,7 +169,7 @@ namespace OpenWaters
 
             long elapsedMs = (DateTime.UtcNow.Ticks - started) / TimeSpan.TicksPerMillisecond;
             OpenWatersPlugin.Log.LogInfo(
-                $"[Gen] Noise frequency: preset={OpenWatersSettings.IslandAmountName}, " +
+                $"[Gen] Noise frequency: preset={WorldSettingsStore.GetDisplayName(settings)}, " +
                 $"scale={field.FrequencyScale:0.00}, detail={field.DetailDamping:0.00}, " +
                 $"peak={field.PeakProtection:0.00}, vanillaLand={calibrator.VanillaLand}, " +
                 $"target={calibrator.TargetLand}, actual={calibrator.ActualLand}, " +
@@ -182,23 +181,18 @@ namespace OpenWaters
         private static NoiseFieldConfig CreateConfig(GenerationSession session)
         {
             bool few = IsFew;
+            WorldSettings settings = session.Settings;
             return new NoiseFieldConfig
             {
-                FrequencyScale = few
-                    ? OpenWatersSettings.FewFrequencyScale
-                    : OpenWatersSettings.MediumFrequencyScale,
-                LandFraction = OpenWatersSettings.LandFraction,
-                DetailDamping = few
-                    ? OpenWatersSettings.FewDetailDamping
-                    : OpenWatersSettings.MediumDetailDamping,
-                PeakProtection = few
-                    ? OpenWatersSettings.FewPeakProtection
-                    : OpenWatersSettings.MediumPeakProtection,
+                FrequencyScale = settings.FrequencyScale,
+                LandFraction = settings.LandFraction,
+                DetailDamping = settings.DetailDamping,
+                PeakProtection = settings.PeakProtection,
                 MountainCompressionStart = few
-                    ? OpenWatersSettings.FewMountainCompressionStart
+                    ? settings.FewMountainCompressionStart
                     : 0f,
                 MountainCompressionFactor = few
-                    ? OpenWatersSettings.FewMountainCompressionFactor
+                    ? settings.FewMountainCompressionFactor
                     : 1f,
                 Offset0 = session.Offset0,
                 Offset1 = session.Offset1,

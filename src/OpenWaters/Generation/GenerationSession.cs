@@ -10,10 +10,12 @@ namespace OpenWaters
 
     internal sealed class GenerationSession
     {
-        public static GenerationSession Current { get; private set; } = new GenerationSession(null);
+        public static GenerationSession Current { get; private set; } =
+            new GenerationSession(null, WorldSettings.Vanilla);
         private static bool _deferNextSession;
 
         public readonly World World;
+        public readonly WorldSettings Settings;
         public float Offset0;
         public float Offset1;
         public float MinMountainDistance = 1000f;
@@ -24,9 +26,10 @@ namespace OpenWaters
         public GenerationStage Stage { get; private set; } = GenerationStage.Idle;
         public bool DeferIslandAnalysis { get; set; }
 
-        public GenerationSession(World world)
+        public GenerationSession(World world, WorldSettings settings)
         {
             World = world;
+            Settings = settings ?? WorldSettings.Vanilla;
         }
 
         public static void DeferNextSession()
@@ -39,9 +42,9 @@ namespace OpenWaters
             _deferNextSession = false;
         }
 
-        public static void Begin(World world)
+        public static void Begin(World world, WorldSettings settings)
         {
-            Current = new GenerationSession(world)
+            Current = new GenerationSession(world, settings)
             {
                 DeferIslandAnalysis = _deferNextSession
             };

@@ -14,7 +14,7 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 
 ## Facts
 
-- Version: `0.1.1`
+- Version: `0.1.2`
 - Plugin GUID: `valheim.openwaters`
 - Assembly / namespace: `OpenWaters`
 - Target: `netstandard2.1`

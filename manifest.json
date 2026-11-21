@@ -1,6 +1,6 @@
 {
   "name": "OpenWaters",
-  "version_number": "0.1.1",
+  "version_number": "0.1.2",
   "website_url": "https://github.com/Mkbewe/valheim-open-waters",
   "description": "Fewer islands and more open ocean for Valheim, with a new-world preview and starting-island controls. Early-alpha world generation mod; single-player focused.",
   "dependencies": [

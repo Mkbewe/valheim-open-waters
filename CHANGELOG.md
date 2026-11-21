@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.2](https://github.com/Mkbewe/valheim-open-waters/compare/v0.1.1...v0.1.2) (2026-11-21)
+
+### Documentation
+
+* add dedicated Thunderstore README ([#31](https://github.com/Mkbewe/valheim-open-waters/issues/31)) ([12c8b8c](https://github.com/Mkbewe/valheim-open-waters/commit/12c8b8c2217eebef7a745d3f57fd699b2ffa56ab))
+
+  - add a user-facing store page with preview and generated-world screenshots
+  - package docs/README.md as the Thunderstore README
+  - compress existing documentation images and add two new world examples
+  - disclose AI-assisted development in the README and assembly metadata
+* improve Thunderstore page discoverability ([#32](https://github.com/Mkbewe/valheim-open-waters/issues/32)) ([fbb0320](https://github.com/Mkbewe/valheim-open-waters/commit/fbb0320f3074b055d38f6e0ab4ea06a54980faa2))
+
+  - add SEO-friendly world generation wording to the store page
+  - add FAQ entries for common Valheim searches
+  - update the short package description
+  - mark multiplayer as planned for the next release
+
 ## [0.1.1](https://github.com/Mkbewe/valheim-open-waters/compare/v0.1.0...v0.1.1) (2026-11-21)
 
 ### Features

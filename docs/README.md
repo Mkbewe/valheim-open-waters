@@ -26,37 +26,37 @@ Few targets about 27% of vanilla land; Medium about 50%. These values are relati
 
 | Vanilla - land | Vanilla - biomes |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-lands.png" alt="Vanilla land preview" width="380"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-bioms.png" alt="Vanilla biome preview" width="380"> |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-lands.png" alt="Vanilla land preview"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-bioms.png" alt="Vanilla biome preview"> |
 | More land and vanilla coastlines. | Vanilla biome distribution. |
 
 | Medium - land | Medium - biomes |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/medium-lands.png" alt="Medium land preview" width="380"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/medium-bioms.png" alt="Medium biome preview" width="380"> |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/medium-lands.png" alt="Medium land preview"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/medium-bioms.png" alt="Medium biome preview"> |
 | About 50% of vanilla land. | Biome colours with the Medium preset. |
 
 ## Starting island options
 
 | Few - vanilla biomes | Few - Remove mountains |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-vanila.png" alt="Few starting island with vanilla biomes" width="300"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-no-mountains.png" alt="Few starting island without high mountains" width="300"> |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-vanila.png" alt="Few starting island with vanilla biomes"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-no-mountains.png" alt="Few starting island without high mountains"> |
 | Starting island keeps its normal biomes. | High peaks on the starting island are suppressed. |
 
 | Few - Max biomes: 1 | Few - Max biomes: 1, mountains kept |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-one-biome.png" alt="Few starting island with one biome" width="300"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-one-biom-with-mountains.png" alt="Few starting island with one biome and mountains" width="300"> |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-one-biome.png" alt="Few starting island with one biome"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-one-biom-with-mountains.png" alt="Few starting island with one biome and mountains"> |
 | Counted biomes become Meadows. | Biome limit applies, but mountain peaks remain. |
 
 ## Generated world
 
 | Few world map | Starting island close-up |
 | --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-game-map.png" alt="Few generated world map" width="380"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-game-map-zoom.png" alt="Few starting island close-up" width="380"> |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-game-map.png" alt="Few generated world map"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/few-game-map-zoom.png" alt="Few starting island close-up"> |
 | Ocean-heavy world with fewer islands. | Close-up of the starting island. |
 
-| Generated world 1 | Generated world 2 |
-| --- | --- |
-| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world1.png" alt="Generated Open Waters world 1" width="380"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world2.png" alt="Generated Open Waters world 2" width="380"> |
-| Example generated world. | Another generated world example. |
+| Vanilla world | Few world | Medium world |
+| --- | --- | --- |
+| <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-vanila.png" alt="Generated vanilla Valheim world"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-few.png" alt="Generated Valheim world with the Few preset"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-medium.png" alt="Generated Valheim world with the Medium preset"> |
+| Vanilla world generation. | Few islands, more open ocean. | Medium islands, about half the vanilla land. |
 
 ## Installation
 

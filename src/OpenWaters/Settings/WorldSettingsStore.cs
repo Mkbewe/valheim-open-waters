@@ -109,7 +109,7 @@ namespace OpenWaters
                 return WorldSettings.Vanilla;
             }
 
-            string path = GetSidecarPath(world.m_worldName);
+            string path = FindSidecarPath(world);
             if (path == null || !_storage.Exists(path))
             {
                 LastMessage = $"No sidecar for '{world.m_worldName}'; using vanilla generation.";
@@ -164,6 +164,34 @@ namespace OpenWaters
         {
             return settings.IslandAmount == WorldSettings.FewIslands ? "Few" :
                 settings.IslandAmount == WorldSettings.MediumIslands ? "Medium" : "Vanilla";
+        }
+
+        private static string FindSidecarPath(World world)
+        {
+            string byName = GetSidecarPath(world.m_worldName);
+            if (byName != null)
+            {
+                return byName;
+            }
+            if (string.IsNullOrEmpty(world.m_seedName))
+            {
+                return null;
+            }
+
+            try
+            {
+                string root = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local);
+                return SidecarLocator.FindBySeed(
+                    _storage.GetDirectories(root),
+                    world.m_seedName,
+                    path => _storage.Exists(path) ? _storage.Read(path) : null,
+                    directory => Path.Combine(directory, SidecarFileName));
+            }
+            catch (Exception exception)
+            {
+                OpenWatersPlugin.Log.LogWarning($"[Settings] Could not search sidecars by seed: {exception.Message}");
+                return null;
+            }
         }
 
         private static string GetSidecarPath(string worldName)

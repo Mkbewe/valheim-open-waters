@@ -4,6 +4,6 @@
   "website_url": "https://github.com/Mkbewe/valheim-open-waters",
   "description": "Fewer islands and more open ocean. Natural coastlines, starting-island options and map preview.",
   "dependencies": [
-    "BepInEx-BepInExPack_Valheim-5.4.2360"
+    "denikson-BepInExPack_Valheim-5.4.2360"
   ]
 }

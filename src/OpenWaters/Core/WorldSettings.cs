@@ -295,6 +295,36 @@ namespace OpenWaters
         }
     }
 
+    internal static class SidecarLocator
+    {
+        public static string FindBySeed(
+            string[] directories,
+            string seed,
+            System.Func<string, string> read,
+            System.Func<string, string> toSidecarPath)
+        {
+            if (directories == null || string.IsNullOrEmpty(seed))
+            {
+                return null;
+            }
+            foreach (string directory in directories)
+            {
+                string path = toSidecarPath(directory);
+                try
+                {
+                    if (WorldSettingsCodec.TryParse(read(path), seed, out _))
+                    {
+                        return path;
+                    }
+                }
+                catch (System.Exception)
+                {
+                }
+            }
+            return null;
+        }
+    }
+
     internal interface ISidecarStorage
     {
         bool Exists(string path);
@@ -302,6 +332,7 @@ namespace OpenWaters
         void Write(string path, string text);
         void Delete(string path);
         void Move(string source, string destination);
+        string[] GetDirectories(string path);
     }
 
     internal sealed class FileSidecarStorage : ISidecarStorage
@@ -311,5 +342,6 @@ namespace OpenWaters
         public void Write(string path, string text) => System.IO.File.WriteAllText(path, text);
         public void Delete(string path) => System.IO.File.Delete(path);
         public void Move(string source, string destination) => System.IO.File.Move(source, destination);
+        public string[] GetDirectories(string path) => System.IO.Directory.GetDirectories(path);
     }
 }

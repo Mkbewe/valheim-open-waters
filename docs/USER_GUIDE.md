@@ -172,6 +172,7 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 
 - **Single-player recommended.** Settings are local; there is no automatic server-to-client synchronization. [Manual synchronization](#manual-synchronization-experimental-unsupported) is an unsupported workaround; a client without the same settings will generate a different world.
 - **Steam Cloud saves are not synchronized.** `OpenWaters.worldSettings` is always written to local storage and is not uploaded with the cloud save, so another machine loading that world from the cloud will generate vanilla terrain. Use local worlds or copy the sidecar manually.
+- **Joining a hosted world finds the sidecar by seed.** The client does not receive the world name when joining, so the mod searches local sidecars for a matching seed. If several worlds share the same seed, the wrong settings may be selected. A stable world UID is planned.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
 - `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
 - No disk cache for terrain calibration.

@@ -14,7 +14,7 @@ Open Waters is an alpha (0.1.0) world-generation mod for Valheim 1.0.21. It give
 2. Copy `OpenWaters.dll` into `<VALHEIM_DIR>/BepInEx/plugins/OpenWaters/`.
 3. Start the game and create a new world from the New World screen.
 
-A Thunderstore release is planned. Once published, the mod can be installed through r2modman or the Thunderstore Mod Manager instead of copying files by hand.
+For local builds, import the release ZIP through r2modman: **Settings -> Profile -> Import local mod**. A Thunderstore release is planned; once published, the mod can also be installed through r2modman or the Thunderstore Mod Manager.
 
 The plugin writes `BepInEx/config/valheim.openwaters.cfg` on first start. Advanced tuning lives there; the in-game panel is enough for normal use.
 
@@ -124,7 +124,7 @@ When you create a world, the current settings are saved in a plain-text file cal
 
 This is where the world's local files (`.db`, `.fwl`, map caches) live. The path is the same for local and Steam Cloud worlds - for a cloud world the authoritative save is in Steam Cloud, so the sidecar stays on this machine and does **not** travel with the world. The sidecar is not synchronized with Steam Cloud; use local worlds or copy the file manually. See [Known limitations](#known-limitations-alpha).
 
-If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If a world has no usable sidecar, generation falls back to Vanilla rather than applying another world's preset.
+If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no matching sidecar can be found, generation falls back to Vanilla. When joining a hosted world the client has no world name, so the sidecar is found by seed; see [Known limitations](#known-limitations-alpha).
 
 The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion` and the seed. Changing the config later does not change an existing world.
 
@@ -140,7 +140,7 @@ Open Waters does not officially support multiplayer or automatic server-to-clien
    In an r2modman/Thunderstore profile it is inside the profile's `BepInEx\config` folder.
 3. Copy the host's `OpenWaters.worldSettings` into the matching local world folder on each client:
    `...\worlds_local\<world name>\OpenWaters.worldSettings`
-   The world name and seed must match; without the sidecar the client falls back to Vanilla and generates a different world.
+   The sidecar must match the world seed; for local worlds the world name should match too. When joining a hosted world, the client searches by seed, so duplicate seeds can be ambiguous.
 4. Create/load the world only after all clients are configured. The in-game panel cannot change settings on an existing world.
 
 Treat multiplayer as experimental and unsupported until automatic synchronization and dedicated-server support are implemented.

@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="AI_Assisted_Creation" Value="This assembly was partially or fully created with the assistance of Generative AI (OpenCode)." />
+    <AssemblyMetadata Include="AI_Model_Vendor" Value="OpenCode" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="BepInEx">
       <HintPath>$(BepInExDir)\core\BepInEx.dll</HintPath>
       <Private>false</Private>

@@ -20,7 +20,7 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - Target: `netstandard2.1`
 - Game: Valheim 1.0.21, BepInEx 5.4.x
 - License: MIT
-- Distribution: early alpha; Thunderstore release pending
+- Distribution: early alpha; published on Thunderstore
 
 ## Features
 
@@ -74,6 +74,8 @@ To build a release package locally:
 ```powershell
 npm run build
 ```
+
+The Thunderstore package uses `docs/README.md` as its page. The repository `README.md` is for GitHub.
 
 The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.worldSettings`.
 

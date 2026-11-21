@@ -16,7 +16,7 @@ $manifestPath = Join-Path $repoRoot "manifest.json"
 $packagePath = Join-Path $repoRoot "package.json"
 $packageLockPath = Join-Path $repoRoot "package-lock.json"
 $changelogPath = Join-Path $repoRoot "CHANGELOG.md"
-$readmePath = Join-Path $repoRoot "README.md"
+$packageReadmePath = Join-Path $repoRoot "docs\README.md"
 $licensePath = Join-Path $repoRoot "LICENSE"
 $noticesPath = Join-Path $repoRoot "THIRD-PARTY-NOTICES.md"
 $iconPath = Join-Path $repoRoot "assets\icons\logo-256.png"
@@ -36,6 +36,10 @@ if (-not (Test-Path -LiteralPath $manifestPath)) {
 
 if (-not (Test-Path -LiteralPath $changelogPath)) {
     throw "CHANGELOG.md not found."
+}
+
+if (-not (Test-Path -LiteralPath $packageReadmePath)) {
+    throw "docs\README.md not found."
 }
 
 if (-not (Test-Path -LiteralPath $iconPath)) {
@@ -124,7 +128,7 @@ New-Item -ItemType Directory -Force -Path $pluginPackageDir | Out-Null
 
 Copy-Item -LiteralPath $manifestPath -Destination $stagingPath
 Copy-Item -LiteralPath $changelogPath -Destination $stagingPath
-Copy-Item -LiteralPath $readmePath -Destination $stagingPath
+Copy-Item -LiteralPath $packageReadmePath -Destination (Join-Path $stagingPath "README.md")
 Copy-Item -LiteralPath $licensePath -Destination $stagingPath
 Copy-Item -LiteralPath $noticesPath -Destination $stagingPath
 Copy-Item -LiteralPath $iconPath -Destination (Join-Path $stagingPath "icon.png")

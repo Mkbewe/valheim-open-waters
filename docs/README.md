@@ -4,17 +4,20 @@
 
 # Open Waters
 
-**Early alpha:** fewer islands, more open ocean, and a more deliberate starting experience for Valheim 1.0.21.
+**Early alpha:** Open Waters is a **Valheim world generation mod** that creates fewer islands, more open ocean, and a more deliberate sailing experience for Valheim 1.0.21. Preview a world seed before creating it, then tune the starting island.
 
-Open Waters keeps vanilla coastlines by lowering terrain instead of deleting land. It is intended for **single-player**; multiplayer and dedicated servers are not officially supported.
+Open Waters keeps vanilla coastlines by lowering terrain instead of deleting land. It is intended for **single-player** for now; multiplayer and dedicated servers are not supported yet. A simpler multiplayer setup is planned for the next release.
 
 [Read the full User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md) | [Report a problem](https://github.com/Mkbewe/valheim-open-waters/issues)
 
-## Features
+## What it changes
 
-- **Island presets:** `Few`, `Medium`, and `Vanilla`.
-- **Starting island options:** remove high mountains and limit the number of biomes.
-- **Map preview:** compare the seed and settings before creating the world.
+Open Waters is for players who want fewer islands, more ocean, more sailing, and a more exploration-focused Valheim world.
+
+- **Fewer islands and more open ocean:** choose the `Few` or `Medium` island preset.
+- **New-world preview:** compare land and biomes for a seed before creating the world.
+- **Starting-island controls:** remove high mountains and limit the biomes on the starting island.
+- **Vanilla coastlines:** terrain is lowered instead of deleting land.
 - **Per-world settings:** a sidecar stores the settings used when the world was created.
 
 Few targets about 27% of vanilla land; Medium about 50%. These values are relative to the same seed in vanilla, not the whole map.
@@ -94,6 +97,28 @@ BepInEx/config/valheim.openwaters.cfg
 | Medium | `DetailDamping` | `0.35` |
 
 `LandFraction` is relative to vanilla land for the same seed, not a percentage of the world.
+
+## FAQ
+
+### How do I get fewer islands in Valheim?
+
+Install Open Waters, start a new world, and choose the `Few` or `Medium` island preset. The mod changes world generation; it does not remove land from an already generated world.
+
+### Can I preview a Valheim world before creating it?
+
+Yes. The New World panel renders a land or biome preview for the current seed and settings.
+
+### Does Open Waters work with existing worlds?
+
+It is designed around new worlds. Existing worlds are not reshaped, and you should back up any world before testing generation mods.
+
+### Does Open Waters work in multiplayer?
+
+Single-player is the supported target for now. Multiplayer and dedicated servers are not supported yet; a simpler multiplayer setup is planned for the next release. Manual synchronization is experimental.
+
+### Is Open Waters compatible with other world-generation mods?
+
+No compatibility is guaranteed. Avoid combining it with other mods that replace Valheim's world generation.
 
 ## Known limitations
 

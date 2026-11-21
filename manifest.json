@@ -2,7 +2,7 @@
   "name": "OpenWaters",
   "version_number": "0.1.1",
   "website_url": "https://github.com/Mkbewe/valheim-open-waters",
-  "description": "Early alpha: fewer islands, more open ocean, starting-island options and map preview. Single-player focused; multiplayer unsupported.",
+  "description": "Fewer islands and more open ocean for Valheim, with a new-world preview and starting-island controls. Early-alpha world generation mod; single-player focused.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2360"
   ]

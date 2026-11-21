@@ -11,7 +11,7 @@ namespace OpenWaters
     {
         public const string PluginGuid = "valheim.openwaters";
         public const string PluginName = "Open Waters";
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "0.1.1";
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> EnabledConfig;

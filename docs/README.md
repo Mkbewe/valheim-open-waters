@@ -126,6 +126,8 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 - **Steam Cloud is not synchronized.** `OpenWaters.worldSettings` stays in local storage.
 - **Joining a hosted world finds the sidecar by seed.** If several worlds share the same seed, the wrong settings may be selected; a stable world UID is planned.
 - **Preview generation can briefly freeze the game.**
+- **Boss and location placement changes.** Fewer islands change how many locations are generated, including boss altars. Testing confirmed boss locations can spawn, but 100% reliability cannot be guaranteed.
+- **The game can be much harder.** Fewer islands mean fewer resources and longer journeys. With Max biomes: 1, reaching a Black Forest may require building a raft.
 - **World size is fixed.** The radius in the sidecar does not resize Valheim's world.
 - **The starting island is the only island with biome limits.**
 

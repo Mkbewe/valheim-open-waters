@@ -178,8 +178,8 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 - No disk cache for terrain calibration.
 - **Preview generation can freeze the game.** Windows may report that the application is not responding. Click **Wait**; in most cases the preview finishes successfully.
 - **Starting-island detection is not perfect**, especially on Vanilla worlds with many islands close together. Nearby islands can be modified by mistake. Parts of the starting island cut off by rivers become separate islands and are not modified. `Remove mountains` can also change river placement and therefore the starting island's shape, which can cause differences between the preview and the generated world.
-- Trader and boss locations and resources such as crypts were tested, but sufficient amounts cannot be guaranteed on every seed. Start with **Medium** maps, where the risk of missing content is lower.
-- **The game is harder and slower with fewer islands.** Finding a specific island on a large ocean can take a long time, and limiting the starting island's biomes can force you to use a raft to reach a Black Forest.
+- **Boss and location placement changes with fewer islands.** The number and distribution of generated locations, including boss altars, can change. Testing confirmed that boss locations can spawn, but 100% reliability cannot be guaranteed on every seed.
+- **The game is harder and slower with fewer islands.** Fewer islands mean fewer resources and longer journeys. With `Max biomes: 1`, reaching a Black Forest may require building a raft.
 
 ## Reporting a problem
 

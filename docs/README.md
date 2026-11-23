@@ -6,7 +6,7 @@
 
 **Early alpha:** Open Waters is a **Valheim world generation mod** that creates fewer islands, more open ocean, and a more deliberate sailing experience for Valheim 1.0.21. Preview a world seed before creating it, then tune the starting island.
 
-Open Waters keeps vanilla coastlines by lowering terrain instead of deleting land. It is intended for **single-player** for now; multiplayer and dedicated servers are not supported yet. A simpler multiplayer setup is planned for the next release.
+Open Waters keeps vanilla coastlines by lowering terrain instead of deleting land. It works in **single-player** and in **hosted worlds**, with settings synchronized from the host to every client. Dedicated-server support is planned for a future release.
 
 [Read the full User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md) | [Report a problem](https://github.com/Mkbewe/valheim-open-waters/issues)
 
@@ -114,7 +114,7 @@ It is designed around new worlds. Existing worlds are not reshaped, and you shou
 
 ### Does Open Waters work in multiplayer?
 
-Single-player is the supported target for now. Multiplayer and dedicated servers are not supported yet; a simpler multiplayer setup is planned for the next release. Manual synchronization is experimental.
+Yes for hosted worlds. The host sends its world settings to every client during the `PeerInfo` handshake, so all players generate the same terrain. Every client needs Open Waters installed; clients without the mod are rejected before they can generate anything, and clients with incompatible settings get a clear message and are disconnected. Dedicated servers are not supported yet.
 
 ### Is Open Waters compatible with other world-generation mods?
 
@@ -122,9 +122,9 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 
 ## Known limitations
 
-- **Single-player focused.** Settings are local; there is no automatic server-to-client synchronization.
-- **Steam Cloud is not synchronized.** `OpenWaters.worldSettings` stays in local storage.
-- **Joining a hosted world finds the sidecar by seed.** If several worlds share the same seed, the wrong settings may be selected; a stable world UID is planned.
+- **Hosted worlds need Open Waters on every client.** The host synchronizes settings during the handshake; clients without the mod are rejected with the game's "wrong version" error. Clients with the mod get a specific in-game message when settings are incompatible, and are disconnected.
+- **Steam Cloud is not synchronized.** `OpenWaters.worldSettings` stays in local storage and does not travel with a cloud save.
+- **Seed-based sidecar lookup is a local-world fallback.** When joining a hosted world the client uses the settings received from the host and ignores its local sidecar. A stable world UID is still planned for local worlds with duplicate seeds.
 - **Preview generation can briefly freeze the game.**
 - **Boss and location placement changes.** Fewer islands change how many locations are generated, including boss altars. Testing confirmed boss locations can spawn, but 100% reliability cannot be guaranteed.
 - **The game can be much harder.** Fewer islands mean fewer resources and longer journeys. With Max biomes: 1, reaching a Black Forest may require building a raft.

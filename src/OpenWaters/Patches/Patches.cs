@@ -9,6 +9,7 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static bool Prefix(FejdStartup __instance)
         {
+            WorldSettingsStore.ClearRemoteSnapshot();
             if (!OpenWatersSettings.Enabled)
             {
                 return true;
@@ -54,6 +55,7 @@ namespace OpenWaters
         [HarmonyPrefix]
         private static bool Prefix()
         {
+            WorldSettingsStore.ClearRemoteSnapshot();
             if (!OpenWatersSettings.Enabled)
             {
                 return true;

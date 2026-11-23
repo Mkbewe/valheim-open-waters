@@ -18,6 +18,7 @@ namespace OpenWaters
         public static int StartBiomeLimit;
         public static bool ExcludeMountains = false;
         public static bool Enabled = true;
+        public static bool DebugSelfTest;
         public static bool PreviewEnabled;
 
         public static float FewLandFraction =>

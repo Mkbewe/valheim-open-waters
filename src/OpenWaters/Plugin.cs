@@ -15,6 +15,7 @@ namespace OpenWaters
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> EnabledConfig;
+        internal static ConfigEntry<bool> DebugSelfTestConfig;
         internal static ConfigEntry<float> FewLandFractionConfig;
         internal static ConfigEntry<float> FewFrequencyScaleConfig;
         internal static ConfigEntry<float> FewPeakProtectionConfig;
@@ -34,6 +35,11 @@ namespace OpenWaters
                 "Enabled",
                 true,
                 "Enable Open Waters world generation and UI controls.");
+            DebugSelfTestConfig = Config.Bind(
+                "General",
+                "DebugSelfTest",
+                false,
+                "Run built-in generation and network checks at startup and write results to the log.");
 
             FewLandFractionConfig = BindFloat(
                 "Few",
@@ -108,8 +114,13 @@ namespace OpenWaters
                 "Detail noise multiplier for Medium.");
 
             OpenWatersSettings.Enabled = EnabledConfig.Value;
+            OpenWatersSettings.DebugSelfTest = DebugSelfTestConfig.Value;
 
             new Harmony(PluginGuid).PatchAll();
+            if (OpenWatersSettings.DebugSelfTest)
+            {
+                SelfTest.Run(message => Log.LogInfo(message));
+            }
             gameObject.AddComponent<WorldCreationUI>();
             Log.LogInfo($"Open Waters plugin loaded (enabled={OpenWatersSettings.Enabled}).");
         }

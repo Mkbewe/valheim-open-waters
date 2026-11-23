@@ -26,6 +26,9 @@
     <Compile Include="..\..\src\OpenWaters\Core\LandCalibrator.cs" Link="LandCalibrator.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\WorldSettings.cs" Link="WorldSettings.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\StartIslandSelector.cs" Link="StartIslandSelector.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\PeerInfoProtocol.cs" Link="PeerInfoProtocol.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\PeerInfoPayload.cs" Link="PeerInfoPayload.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\RemoteSettingsState.cs" Link="RemoteSettingsState.cs" />
   </ItemGroup>
 
 </Project>

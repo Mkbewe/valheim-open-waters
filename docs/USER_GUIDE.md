@@ -1,12 +1,12 @@
 # Open Waters - User Guide
 
-Open Waters is an alpha (0.1.2) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It is currently intended for **single-player**. Multiplayer is not officially supported; [manual synchronization](#manual-synchronization-experimental-unsupported) is an experimental, unsupported workaround.
+Open Waters is an alpha (0.1.2) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It works in **single-player** and in **hosted worlds**: the host sends its generation settings to every client during the handshake, so everyone generates the same world. See [Hosted worlds](#hosted-worlds).
 
 ## Requirements
 
 - Valheim 1.0.21 - this is the version the mod is tested on; older versions may work but are not verified
 - BepInEx 5.4.x (BepInExPack Valheim)
-- The mod installed on the client (server and client sync is not implemented yet)
+- The mod installed on every client of a hosted world (the host synchronizes settings automatically)
 
 ## Installation
 
@@ -124,26 +124,28 @@ When you create a world, the current settings are saved in a plain-text file cal
 
 This is where the world's local files (`.db`, `.fwl`, map caches) live. The path is the same for local and Steam Cloud worlds - for a cloud world the authoritative save is in Steam Cloud, so the sidecar stays on this machine and does **not** travel with the world. The sidecar is not synchronized with Steam Cloud; use local worlds or copy the file manually. See [Known limitations](#known-limitations-alpha).
 
-If Valheim or a dedicated server was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no matching sidecar can be found, generation falls back to Vanilla. When joining a hosted world the client has no world name, so the sidecar is found by seed; see [Known limitations](#known-limitations-alpha).
+If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no matching sidecar can be found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local sidecar; see [Hosted worlds](#hosted-worlds).
 
 The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion` and the seed. Changing the config later does not change an existing world.
 
 If a sidecar exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no sidecar is treated as vanilla.
 
-## Manual synchronization (experimental, unsupported)
+## Hosted worlds
 
-Open Waters does not officially support multiplayer or automatic server-to-client synchronization. If you still want to try it, every player must use **the same mod version and the same settings** before the world is generated on their machine:
+Open Waters synchronizes generation settings between the host and the clients. You do not need to copy the sidecar or match config files by hand.
 
-1. Install the same Open Waters version everywhere.
-2. Make sure the BepInEx config is identical on every machine. The file is:
-   `<VALHEIM_DIR>\BepInEx\config\valheim.openwaters.cfg`
-   In an r2modman/Thunderstore profile it is inside the profile's `BepInEx\config` folder.
-3. Copy the host's `OpenWaters.worldSettings` into the matching local world folder on each client:
-   `...\worlds_local\<world name>\OpenWaters.worldSettings`
-   The sidecar must match the world seed; for local worlds the world name should match too. When joining a hosted world, the client searches by seed, so duplicate seeds can be ambiguous.
-4. Create/load the world only after all clients are configured. The in-game panel cannot change settings on an existing world.
+1. Install the same Open Waters version on the host and on every client.
+2. Create the world on the host and set its options on the New World screen. The sidecar is written to the host's local world folder.
+3. Join the hosted world. During the handshake the host sends the world's generation settings to each client, and every client generates the same terrain.
+4. The in-game panel cannot change settings on an existing world; create a new world to change its preset.
 
-Treat multiplayer as experimental and unsupported until automatic synchronization and dedicated-server support are implemented.
+**Clients without Open Waters** cannot join a hosted world that uses custom settings. The host rejects them before they generate any terrain; they see the game's "wrong version" connection error.
+
+**Clients with Open Waters** receive a specific in-game message and are disconnected when the server's payload is invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local sidecar.
+
+Setting `Enabled = false` in `valheim.openwaters.cfg` keeps that client fully vanilla: it does not advertise the mod and does not apply server settings. Such a client cannot join a hosted world that requires Open Waters.
+
+Dedicated-server support is not included in this release.
 
 ## Advanced configuration
 
@@ -156,6 +158,7 @@ In an r2modman/Thunderstore profile, look in that profile's `BepInEx\config` fol
 | Section | Key | Default |
 | --- | --- | --- |
 | General | `Enabled` | `true` |
+| General | `DebugSelfTest` | `false` |
 | Few | `LandFraction` | `0.27` |
 | Few | `FrequencyScale` | `0.60` |
 | Few | `PeakProtection` | `0.20` |
@@ -168,11 +171,13 @@ In an r2modman/Thunderstore profile, look in that profile's `BepInEx\config` fol
 
 Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more mountains. `LandFraction` is relative to vanilla land for the same seed.
 
+`DebugSelfTest` is a diagnostic switch: with it enabled, the mod runs a short set of world-settings checks at startup and writes `PASS`/`FAIL` lines to `BepInEx/LogOutput.log`. Leave it off for normal play.
+
 ## Known limitations (alpha)
 
-- **Single-player recommended.** Settings are local; there is no automatic server-to-client synchronization. [Manual synchronization](#manual-synchronization-experimental-unsupported) is an unsupported workaround; a client without the same settings will generate a different world.
+- **Hosted worlds require the mod on every client.** Settings are synchronized from the host during the handshake; see [Hosted worlds](#hosted-worlds).
 - **Steam Cloud saves are not synchronized.** `OpenWaters.worldSettings` is always written to local storage and is not uploaded with the cloud save, so another machine loading that world from the cloud will generate vanilla terrain. Use local worlds or copy the sidecar manually.
-- **Joining a hosted world finds the sidecar by seed.** The client does not receive the world name when joining, so the mod searches local sidecars for a matching seed. If several worlds share the same seed, the wrong settings may be selected. A stable world UID is planned.
+- **Seed-based sidecar lookup applies to local worlds.** When joining a hosted world the client uses the settings received from the host and ignores local sidecars. For local worlds with duplicate seeds, a stable world UID is still planned.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
 - `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
 - No disk cache for terrain calibration.
@@ -180,6 +185,7 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 - **Starting-island detection is not perfect**, especially on Vanilla worlds with many islands close together. Nearby islands can be modified by mistake. Parts of the starting island cut off by rivers become separate islands and are not modified. `Remove mountains` can also change river placement and therefore the starting island's shape, which can cause differences between the preview and the generated world.
 - **Boss and location placement changes with fewer islands.** The number and distribution of generated locations, including boss altars, can change. Testing confirmed that boss locations can spawn, but 100% reliability cannot be guaranteed on every seed.
 - **The game is harder and slower with fewer islands.** Fewer islands mean fewer resources and longer journeys. With `Max biomes: 1`, reaching a Black Forest may require building a raft.
+- **Every client needs Open Waters to join a hosted world with custom settings.** The server rejects clients without the mod using the game's "wrong version" connection error. Clients with the mod receive a specific message when the server's settings are incompatible, and are disconnected.
 
 ## Reporting a problem
 

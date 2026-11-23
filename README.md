@@ -6,11 +6,11 @@
 
 Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases open ocean. It keeps vanilla coastlines by lowering terrain instead of removing land.
 
-> **Early alpha:** single-player is the main supported target. Multiplayer and dedicated servers are unsupported, and settings or world compatibility may change between builds.
+> **Early alpha:** local and hosted worlds are supported; every client needs the same mod version. Dedicated-server support is still planned, and settings or world compatibility may change between builds.
 
 [![Release downloads](https://img.shields.io/github/downloads/Mkbewe/valheim-open-waters/total?style=flat-square&label=release%20downloads)](https://github.com/Mkbewe/valheim-open-waters/releases)
 
-**Start here:** [User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md) - installation, panel controls, preview, configuration, and experimental manual multiplayer notes. Multiplayer is not officially supported.
+**Start here:** [User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md) - installation, panel controls, preview, configuration, and hosted-world multiplayer.
 
 ## Facts
 
@@ -44,13 +44,21 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
 - `Generate preview` renders a 400x400 map from 512x512 samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
 - Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
-- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a matching sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error. When joining a hosted world, the sidecar is found by seed because the client has no world name.
+- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a matching sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error. When joining a hosted world, the host sends the generation settings to every client during the handshake, so no local sidecar is needed.
+
+### Hosted worlds
+
+- The host sends its generation settings to each client in the `PeerInfo` handshake; clients generate the same world without copying sidecars.
+- Clients without Open Waters are rejected before they can generate terrain. They see the game's "wrong version" connection error.
+- Clients with Open Waters get a specific in-game message and are disconnected if the server's settings or generator version are incompatible.
+- A client with the mod joining a vanilla host plays a vanilla world and ignores its local sidecar, so local settings cannot corrupt the host's world.
+- Setting `Enabled = false` keeps that client fully vanilla - it does not advertise the mod and does not apply server settings.
 
 ## Constraints
 
 - World size is fixed; `WorldRadius` is used only for analysis and preview sampling.
 - `BiomeLimit` is stored in the sidecar but not applied.
-- Settings are local; there is no server-to-client synchronization. Steam Cloud saves are not synchronized: the sidecar is written to local storage and does not travel with the cloud save.
+- Hosted worlds synchronize their generation settings to clients during the handshake; every client needs the mod. Steam Cloud saves are not synchronized: the sidecar is written to local storage and does not travel with the cloud save.
 - Calibration has no disk cache; only preview textures are cached.
 
 ## Install
@@ -117,6 +125,7 @@ If there is no previous `v*` tag, the first changelog includes the full history;
 | Section | Key | Default |
 | --- | --- | --- |
 | General | `Enabled` | `true` |
+| General | `DebugSelfTest` | `false` |
 | Few | `LandFraction` | `0.27` |
 | Few | `FrequencyScale` | `0.60` |
 | Few | `PeakProtection` | `0.20` |

@@ -79,6 +79,14 @@ The Thunderstore package uses `docs/README.md` as its page. The repository `READ
 
 The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.worldSettings`.
 
+For repeatable test packages use:
+
+```powershell
+npm run build:test
+```
+
+This writes a unique three-part test version from the base major/minor and the current patch multiplied by 1000 plus an incrementing counter (base `0.1.2` gives `0.1.2001`, `0.1.2002`, ...), builds the package into `release/test/MkbewePP-OpenWaters-<version>.zip`, then restores the original version files. Three parts matter: r2modman rejects a fourth component and falls back to `0.0.0`, which would reuse the same cache entry. The counter lives in the gitignored `tooling/test-build-counter.txt`. Test packages are for local multiplayer verification only — they are never published to Thunderstore.
+
 ## Releases
 
 Release changelog, versions and the release ZIP are built locally. Preview the next release:

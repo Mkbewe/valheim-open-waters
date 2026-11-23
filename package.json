@@ -6,6 +6,7 @@
   "scripts": {
     "prepare": "husky",
     "build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tooling/build-release.ps1 -OutputDir release",
+    "build:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tooling/build-test.ps1",
     "release": "node tooling/release.mjs",
     "release:dry": "node tooling/release.mjs --dry-run",
     "release:patch": "node tooling/release.mjs patch",

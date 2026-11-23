@@ -1,6 +1,6 @@
 # Open Waters - User Guide
 
-Open Waters is an alpha (0.1.2) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It works in **single-player** and in **hosted worlds**: the host sends its generation settings to every client during the handshake, so everyone generates the same world. See [Hosted worlds](#hosted-worlds).
+Open Waters is an alpha (0.2.0) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It works in **single-player** and in **hosted worlds**: the host sends its generation settings to every client during the handshake, so everyone generates the same world. See [Hosted worlds](#hosted-worlds).
 
 ## Requirements
 

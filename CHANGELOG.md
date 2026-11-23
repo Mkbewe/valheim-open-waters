@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0](https://github.com/Mkbewe/valheim-open-waters/compare/v0.1.2...v0.2.0) (2026-11-23)
+
+### Features
+
+* **50:** synchronize world settings between host and clients ([#53](https://github.com/Mkbewe/valheim-open-waters/issues/53)) ([3872dc0](https://github.com/Mkbewe/valheim-open-waters/commit/3872dc0e40fde1f7f995d63b069b3b3d7d051bd7))
+
+  - clients use the host's settings during the handshake instead of local sidecars
+  - clients without the mod are rejected and disconnected before generating terrain
+  - incompatible settings show a specific message and disconnect the client
+  - a disabled mod stays vanilla instead of advertising support to modded hosts
+  - add unit tests and a startup self-check for the new peer-info logic
+  - document hosted-world requirements, test results and the diagnostics switch
+
+### Documentation
+
+* document world generation limits and follow-up work ([#35](https://github.com/Mkbewe/valheim-open-waters/issues/35)) ([a91a7c7](https://github.com/Mkbewe/valheim-open-waters/commit/a91a7c76804f08c7006b75f1afe0b0602357cebe))
+* update generated world gallery ([#34](https://github.com/Mkbewe/valheim-open-waters/issues/34)) ([ea5cc9b](https://github.com/Mkbewe/valheim-open-waters/commit/ea5cc9bf9631356399d786557152f16066d1ff53))
+
+  - replace world1/world2 with per-preset screenshots
+  - add Vanilla, Few and Medium comparison images
+  - refresh the existing generated-world screenshots
+
 ## [0.1.2](https://github.com/Mkbewe/valheim-open-waters/compare/v0.1.1...v0.1.2) (2026-11-21)
 
 ### Documentation

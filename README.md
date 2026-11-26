@@ -95,7 +95,9 @@ For repeatable test packages use:
 npm run build:test
 ```
 
-This writes a unique three-part test version from the base major/minor and the current patch multiplied by 1000 plus an incrementing counter (base `0.1.2` gives `0.1.2001`, `0.1.2002`, ...), builds the package into `release/test/MkbewePP-OpenWaters-<version>.zip`, then restores the original version files. Three parts matter: r2modman rejects a fourth component and falls back to `0.0.0`, which would reuse the same cache entry. The counter lives in the gitignored `tooling/test-build-counter.txt`. Test packages are for local multiplayer verification only — they are never published to Thunderstore.
+This writes a unique three-part test version. Above patch zero, the test patch is `patch * 1000 + counter` (base `0.1.2` gives `0.1.2001`, `0.1.2002`, ...). Patch zero has no thousands prefix, so its tests start at `101` and leave `0.2.1` through `0.2.100` for real releases (base `0.2.0` gives `0.2.101`, `0.2.102`, ...). No leading zeros are used because they are invalid SemVer.
+
+The package is written to `release/test/MkbewePP-OpenWaters-<version>.zip`, then the original version files are restored. Three parts matter: r2modman rejects a fourth component and falls back to `0.0.0`, which would reuse the same cache entry. The counter lives in the gitignored `tooling/test-build-counter.txt` as `baseVersion:counter`; it resets automatically when the base version changes, so every release line starts at `101`/`1001`/`...`. A patch-zero block holds 899 builds (`101..999`) and higher blocks hold 999; the script throws when the block is full. Delete the counter file to start again manually. Test packages are for local multiplayer verification only — they are never published to Thunderstore.
 
 ## Releases
 

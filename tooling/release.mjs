@@ -23,6 +23,7 @@ const manifestPath = path.join(repoRoot, 'manifest.json');
 const pluginPath = path.join(repoRoot, 'src', 'OpenWaters', 'Plugin.cs');
 const readmePath = path.join(repoRoot, 'README.md');
 const guidePath = path.join(repoRoot, 'docs', 'USER_GUIDE.md');
+const storeChangelogPath = path.join(repoRoot, 'docs', 'CHANGELOG-STORE.md');
 const releaseItPath = path.join(repoRoot, 'node_modules', 'release-it', 'bin', 'release-it.js');
 const buildScriptPath = path.join(repoRoot, 'tooling', 'build-release.ps1');
 const releaseDir = path.join(repoRoot, 'release');
@@ -45,6 +46,21 @@ function run(command, commandArgs) {
 function fail(message) {
   console.error(message);
   process.exit(1);
+}
+
+function assertStoreChangelog(version) {
+  if (!existsSync(storeChangelogPath)) {
+    fail('docs/CHANGELOG-STORE.md not found.');
+  }
+
+  const text = readFileSync(storeChangelogPath, 'utf8');
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!new RegExp(`^##\\s+${escapedVersion}(?:\\s|$)`, 'm').test(text)) {
+    fail(
+      `docs/CHANGELOG-STORE.md has no section for ${version}. ` +
+        'Add a player-facing entry and commit it before releasing.'
+    );
+  }
 }
 
 function incrementVersion(version, releaseType) {
@@ -138,6 +154,8 @@ console.log(`${requestedType ? 'Requested' : 'Detected'} release type: ${release
 console.log(`Version: ${currentVersion} -> ${nextVersion}`);
 console.log(`Branch: ${releaseBranch}`);
 
+assertStoreChangelog(nextVersion);
+
 if (dryRun) {
   console.log('Dry run; no files, commits, tags or branches changed.');
   process.exit(0);
@@ -211,6 +229,7 @@ const files = [
   'src/OpenWaters/Plugin.cs',
   'README.md',
   'docs/USER_GUIDE.md',
+  'docs/CHANGELOG-STORE.md',
   path.relative(repoRoot, packageZip).replaceAll('\\', '/'),
 ].filter((file) => existsSync(path.join(repoRoot, file)));
 

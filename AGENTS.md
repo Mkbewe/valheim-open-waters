@@ -29,5 +29,6 @@
   `area:ui`, `area:network`, `area:tooling`, `area:docs`) and one type label
   (`enhancement`, `bug`, `refactor`, `chore`, `documentation`, `perf`, `test`,
   `ci`)
+- The board tracks issues; pull requests are not added as separate cards.
 - New issues are added to the board automatically by the **Auto-add to project**
   workflow

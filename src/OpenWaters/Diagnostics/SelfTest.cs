@@ -18,11 +18,12 @@ namespace OpenWaters
             Check(log, "valid OWS1 payload decodes and parses", ref passed, ref failed, () =>
             {
                 WorldSettings settings = Sample();
-                byte[] package = Package("OWS1:" + WorldSettingsCodec.Serialize(settings, "seed-a"));
+                byte[] package = Package("OWS1:" + WorldSettingsCodec.Serialize(
+                    settings, "seed-a", includeUid: false));
                 PeerInfoPayloadKind kind = PeerInfoPayload.Read(
                     package, 0, package.Length, "OWS1:", out string text, out _);
                 return kind == PeerInfoPayloadKind.OpenWaters &&
-                       WorldSettingsCodec.TryParse(text.Substring("OWS1:".Length), "seed-a", out _);
+                       WorldSettingsCodec.TryParse(text.Substring("OWS1:".Length), out _);
             });
 
             Check(log, "another mod's extension is ignored", ref passed, ref failed, () =>
@@ -39,9 +40,9 @@ namespace OpenWaters
                        PeerInfoPayloadKind.UnsupportedVersion;
             });
 
-            Check(log, "wrong seed invalidates the payload", ref passed, ref failed, () =>
-                !WorldSettingsCodec.TryParse(
-                    WorldSettingsCodec.Serialize(Sample(), "seed-a"), "seed-b", out _));
+            Check(log, "wrong uid invalidates the sidecar", ref passed, ref failed, () =>
+                !WorldSettingsCodec.TryParseByUid(
+                    WorldSettingsCodec.Serialize(Sample(), "seed-a"), "wrong-uid", out _));
 
             Check(log, "unsupported generator version is detected", ref passed, ref failed, () =>
             {
@@ -70,7 +71,7 @@ namespace OpenWaters
 
         private static WorldSettings Sample(int generatorVersion = WorldSettings.GeneratorVersion) =>
             new WorldSettings(WorldSettings.MediumIslands, 8000, 0, 1, false, "0.1.2",
-                generatorVersion: generatorVersion);
+                generatorVersion: generatorVersion, uid: "self-test");
 
         private static byte[] Package(string text)
         {

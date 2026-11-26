@@ -19,6 +19,7 @@ namespace OpenWaters
         public static bool ExcludeMountains = false;
         public static bool Enabled = true;
         public static bool DebugSelfTest;
+        public static bool LocalSidecarFallback;
         public static bool PreviewEnabled;
 
         public static float FewLandFraction =>

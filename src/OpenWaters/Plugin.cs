@@ -16,6 +16,7 @@ namespace OpenWaters
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> EnabledConfig;
         internal static ConfigEntry<bool> DebugSelfTestConfig;
+        internal static ConfigEntry<bool> LocalSidecarFallbackConfig;
         internal static ConfigEntry<float> FewLandFractionConfig;
         internal static ConfigEntry<float> FewFrequencyScaleConfig;
         internal static ConfigEntry<float> FewPeakProtectionConfig;
@@ -40,6 +41,11 @@ namespace OpenWaters
                 "DebugSelfTest",
                 false,
                 "Run built-in generation and network checks at startup and write results to the log.");
+            LocalSidecarFallbackConfig = Config.Bind(
+                "General",
+                "LocalSidecarFallback",
+                false,
+                "Use a manually copied OpenWaters.worldSettings when the server does not provide compatible settings.");
 
             FewLandFractionConfig = BindFloat(
                 "Few",
@@ -115,6 +121,7 @@ namespace OpenWaters
 
             OpenWatersSettings.Enabled = EnabledConfig.Value;
             OpenWatersSettings.DebugSelfTest = DebugSelfTestConfig.Value;
+            OpenWatersSettings.LocalSidecarFallback = LocalSidecarFallbackConfig.Value;
 
             new Harmony(PluginGuid).PatchAll();
             if (OpenWatersSettings.DebugSelfTest)

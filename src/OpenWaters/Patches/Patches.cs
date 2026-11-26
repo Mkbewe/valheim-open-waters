@@ -53,8 +53,9 @@ namespace OpenWaters
     internal static class FejdStartupOnNewWorldDonePatch
     {
         [HarmonyPrefix]
-        private static bool Prefix()
+        private static bool Prefix(ref bool __state)
         {
+            __state = false;
             WorldSettingsStore.ClearRemoteSnapshot();
             if (!OpenWatersSettings.Enabled)
             {
@@ -65,25 +66,46 @@ namespace OpenWaters
             if (startup != null && startup.m_newWorldName != null && startup.m_newWorldSeed != null)
             {
                 string name = startup.m_newWorldName.text;
-                if (!string.IsNullOrEmpty(name) && !World.HaveWorld(name))
-                {
-                    string seed = startup.m_newWorldSeed.text;
-                    if (!WorldSettingsStore.TryWriteForNewWorld(name, seed, out string error))
-                    {
-                        string message =
-                            $"Could not save Open Waters settings for world '{name}': {error}. " +
-                            "World creation was cancelled.";
-                        OpenWatersPlugin.Log.LogError($"[Settings] {message}");
-                        UnifiedPopup.Push(new WarningPopup(
-                            "Open Waters: could not save world settings",
-                            message,
-                            UnifiedPopup.Pop,
-                            localizeText: false));
-                        return false;
-                    }
-                }
+                __state = !string.IsNullOrEmpty(name) && !World.HaveWorld(name);
             }
             return true;
+        }
+
+        [HarmonyPostfix]
+        private static void Postfix(bool __state)
+        {
+            if (!__state || !OpenWatersSettings.Enabled)
+            {
+                return;
+            }
+
+            FejdStartup startup = FejdStartup.instance;
+            if (startup?.m_newWorldName == null || startup.m_newWorldSeed == null)
+            {
+                return;
+            }
+
+            string name = startup.m_newWorldName.text;
+            World world = Traverse.Create(startup).Field("m_world").GetValue<World>();
+            if (world == null || world.m_uid == 0L ||
+                !string.Equals(world.m_worldName, name, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            string seed = startup.m_newWorldSeed.text;
+            if (!WorldSettingsStore.TryWriteForNewWorld(name, seed, world.m_uid, out string error))
+            {
+                string message =
+                    $"Could not save Open Waters settings for world '{name}': {error}. " +
+                    "The world will generate vanilla terrain; delete it and try again.";
+                OpenWatersPlugin.Log.LogError($"[Settings] {message}");
+                UnifiedPopup.Push(new WarningPopup(
+                    "Open Waters: could not save world settings",
+                    message,
+                    UnifiedPopup.Pop,
+                    localizeText: false));
+            }
         }
     }
 }

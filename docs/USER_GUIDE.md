@@ -122,7 +122,7 @@ When you create a world, the current settings are saved in a plain-text file cal
 
 `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\worlds_local\<world name>\OpenWaters.worldSettings`
 
-This is where the world's local files (`.db`, `.fwl`, map caches) live. The path is the same for local and Steam Cloud worlds - for a cloud world the authoritative save is in Steam Cloud, so the sidecar stays on this machine and does **not** travel with the world. The sidecar is not synchronized with Steam Cloud; use local worlds or copy the file manually. See [Known limitations](#known-limitations-alpha).
+This is where the world's local files (`.db`, `.fwl`, map caches) live. Local worlds keep the sidecar here, in `worlds_local\<world>\`. Steam Cloud worlds keep it alongside their own save in `worlds\<world>\`, so it travels with the world. If cloud storage is unavailable or full, the sidecar is written locally and a warning is logged. See [Known limitations](#known-limitations-alpha).
 
 If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no sidecar with the matching world UID is found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local sidecar; see [Hosted worlds](#hosted-worlds).
 
@@ -135,7 +135,7 @@ If a sidecar exists but is malformed or was written by an incompatible `generato
 Open Waters synchronizes generation settings between the host and the clients. You do not need to copy the sidecar or match config files by hand.
 
 1. Install the same Open Waters version on the host and on every client.
-2. Create the world on the host and set its options on the New World screen. The sidecar is written to the host's local world folder.
+2. Create the world on the host and set its options on the New World screen. The sidecar is written next to the world's own save, cloud or local.
 3. Join the hosted world. During the handshake the host sends the world's generation settings to each client, and every client generates the same terrain.
 4. The in-game panel cannot change settings on an existing world; create a new world to change its preset.
 
@@ -143,7 +143,7 @@ Open Waters synchronizes generation settings between the host and the clients. Y
 
 **Clients with Open Waters** receive a specific in-game message and are disconnected when the server's payload is invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local sidecar unless `LocalSidecarFallback` is enabled.
 
-If the host's settings are not received, enable `LocalSidecarFallback` in `valheim.openwaters.cfg` and copy the host's `OpenWaters.worldSettings` into any world folder on the client under `worlds_local`. The client matches the file by the world UID from the vanilla handshake, not by seed.
+If the host's settings are not received, enable `LocalSidecarFallback` in `valheim.openwaters.cfg` and copy the host's `OpenWaters.worldSettings` into the matching world folder on the client (`worlds_local` or `worlds`). The client matches the file by the world UID from the vanilla handshake, not by seed.
 
 Setting `Enabled = false` in `valheim.openwaters.cfg` keeps that client fully vanilla: it does not advertise the mod and does not apply server settings. Such a client cannot join a hosted world that requires Open Waters.
 
@@ -181,7 +181,7 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 ## Known limitations (alpha)
 
 - **Hosted worlds require the mod on every client.** Settings are synchronized from the host during the handshake; see [Hosted worlds](#hosted-worlds).
-- **Steam Cloud saves are not synchronized.** `OpenWaters.worldSettings` is always written to local storage and is not uploaded with the cloud save, so another machine loading that world from the cloud will generate vanilla terrain. Use local worlds or copy the sidecar manually.
+- **Steam Cloud keeps settings with the world.** A cloud world's `OpenWaters.worldSettings` travels with its cloud save; a local world's file stays in `worlds_local`. When cloud storage is unavailable, the sidecar falls back to local storage with a warning.
 - **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
 - **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.

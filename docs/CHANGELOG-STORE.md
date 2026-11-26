@@ -6,6 +6,8 @@
 - **Old worlds:** add `uid=<id from the BepInEx log>` to `OpenWaters.worldSettings`, or create a new world. Otherwise they generate vanilla terrain.
 - Hosting works as before: everyone needs the mod and gets the host's settings.
 - New `LocalSidecarFallback` option allows a copied settings file. Leave it off normally.
+- Steam Cloud worlds keep their Open Waters settings with the world, so the same terrain appears on another PC without copying files.
+- Local worlds keep their settings in `worlds_local`. If Steam Cloud is unavailable or full, the settings fall back to local storage with a warning.
 
 ## 0.2.0 (2026-11-23)
 

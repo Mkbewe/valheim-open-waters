@@ -27,6 +27,7 @@ namespace OpenWaters
         public readonly bool ExcludeMountains;
         public readonly int SidecarFormatVersion;
         public readonly int GeneratorVersionValue;
+        public readonly string Uid;
         public readonly string ModVersion;
         public readonly float FewLandFraction;
         public readonly float FewFrequencyScale;
@@ -57,7 +58,8 @@ namespace OpenWaters
             float mediumPeakProtection = 0.60f,
             float mediumDetailDamping = 0.35f,
             int sidecarFormatVersion = SidecarVersion,
-            int generatorVersion = GeneratorVersion)
+            int generatorVersion = GeneratorVersion,
+            string uid = null)
         {
             IslandAmount = islandAmount;
             WorldRadius = worldRadius;
@@ -77,6 +79,7 @@ namespace OpenWaters
             MediumDetailDamping = mediumDetailDamping;
             SidecarFormatVersion = sidecarFormatVersion;
             GeneratorVersionValue = generatorVersion;
+            Uid = uid;
         }
 
         public static WorldSettings Vanilla => new WorldSettings(VanillaIslands, DefaultWorldRadius, 0, 0, false);
@@ -115,12 +118,16 @@ namespace OpenWaters
 
     internal static class WorldSettingsCodec
     {
-        public static string Serialize(WorldSettings settings, string seed)
+        public static string Serialize(WorldSettings settings, string seed, bool includeUid = true)
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("# Open Waters world settings");
             WriteInt(text, "version", settings.SidecarFormatVersion);
             WriteInt(text, "generatorVersion", settings.GeneratorVersionValue);
+            if (includeUid && !string.IsNullOrEmpty(settings.Uid))
+            {
+                WriteString(text, "uid", settings.Uid);
+            }
             WriteString(text, "modVersion", settings.ModVersion);
             WriteString(text, "seed", Encode(seed));
             WriteInt(text, "islandAmount", settings.IslandAmount);
@@ -141,10 +148,26 @@ namespace OpenWaters
             return text.ToString();
         }
 
-        public static bool TryParse(string text, string seed, out WorldSettings settings)
+        public static bool TryParse(string text, out WorldSettings settings)
+        {
+            return TryParseCore(text, out settings);
+        }
+
+        public static bool TryParseByUid(string text, string uid, out WorldSettings settings)
         {
             settings = null;
-            if (string.IsNullOrEmpty(text) || seed == null)
+            if (string.IsNullOrEmpty(uid))
+            {
+                return false;
+            }
+            return TryParseCore(text, out settings) &&
+                   string.Equals(settings.Uid, uid, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryParseCore(string text, out WorldSettings settings)
+        {
+            settings = null;
+            if (string.IsNullOrEmpty(text))
             {
                 return false;
             }
@@ -170,12 +193,18 @@ namespace OpenWaters
                 values[key] = line.Substring(separator + 1).Trim();
             }
 
+            string uid = null;
+            if (values.TryGetValue("uid", out string storedUid) && !string.IsNullOrEmpty(storedUid))
+            {
+                uid = storedUid;
+            }
+
             if (!TryGetInt(values, "version", out int version) ||
                 version != WorldSettings.SidecarVersion ||
                 !TryGetInt(values, "generatorVersion", out int generatorVersion) ||
                 !TryGetString(values, "modVersion", out string modVersion) ||
                 !values.TryGetValue("seed", out string encodedSeed) ||
-                !TryDecode(encodedSeed, out string fileSeed) || fileSeed != seed ||
+                !TryDecode(encodedSeed, out _) ||
                 !TryGetInt(values, "islandAmount", out int islandAmount) ||
                 !TryGetInt(values, "worldRadius", out int worldRadius) ||
                 !TryGetInt(values, "biomeLimit", out int biomeLimit) ||
@@ -220,7 +249,7 @@ namespace OpenWaters
                 modVersion, fewLandFraction, fewFrequencyScale, fewPeakProtection, fewDetailDamping,
                 fewMountainCompressionStart, fewMountainCompressionFactor,
                 mediumLandFraction, mediumFrequencyScale, mediumPeakProtection, mediumDetailDamping,
-                version, generatorVersion);
+                version, generatorVersion, uid);
             return true;
         }
 
@@ -297,13 +326,13 @@ namespace OpenWaters
 
     internal static class SidecarLocator
     {
-        public static string FindBySeed(
+        public static string FindByUid(
             string[] directories,
-            string seed,
+            string uid,
             System.Func<string, string> read,
             System.Func<string, string> toSidecarPath)
         {
-            if (directories == null || string.IsNullOrEmpty(seed))
+            if (directories == null || string.IsNullOrEmpty(uid))
             {
                 return null;
             }
@@ -312,7 +341,7 @@ namespace OpenWaters
                 string path = toSidecarPath(directory);
                 try
                 {
-                    if (WorldSettingsCodec.TryParse(read(path), seed, out _))
+                    if (WorldSettingsCodec.TryParseByUid(read(path), uid, out _))
                     {
                         return path;
                     }
@@ -323,6 +352,7 @@ namespace OpenWaters
             }
             return null;
         }
+
     }
 
     internal interface ISidecarStorage

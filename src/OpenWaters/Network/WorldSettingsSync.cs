@@ -413,7 +413,7 @@ namespace OpenWaters
                 return;
             }
 
-            string payload = WorldSettingsCodec.Serialize(settings, world.m_seedName);
+            string payload = WorldSettingsCodec.Serialize(settings, world.m_seedName, includeUid: false);
             pkg.Write(Marker + payload);
             OpenWatersPlugin.Log.LogInfo(
                 $"[Network] Sending world settings: world='{world.m_worldName}', seed='{world.m_seedName}', " +
@@ -481,7 +481,7 @@ namespace OpenWaters
                 FieldInfo worldField = AccessTools.Field(typeof(ZNet), "m_world");
                 World world = worldField != null ? worldField.GetValue(null) as World : null;
                 string seed = world != null ? world.m_seedName : string.Empty;
-                if (!WorldSettingsCodec.TryParse(payload, seed, out WorldSettings settings))
+                if (!WorldSettingsCodec.TryParse(payload, out WorldSettings settings))
                 {
                     OpenWatersPlugin.Log.LogError("[Network] Server sent invalid Open Waters settings.");
                     WorldSettingsStore.MarkRemotePayloadInvalid();

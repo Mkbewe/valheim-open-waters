@@ -44,14 +44,14 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
 - `Generate preview` renders a 400x400 map from 512x512 samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
 - Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
-- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a matching sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error. When joining a hosted world, the host sends the generation settings to every client during the handshake, so no local sidecar is needed.
+- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` in the **local** `worlds_local\<world>\` folder, next to that world's local files. The sidecar stores the settings and the vanilla world UID; local sidecars are matched by UID. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a usable sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error, while a sidecar without a UID is ignored. When joining a hosted world, the host sends the generation settings to every client during the handshake, so no local sidecar is needed.
 
 ### Hosted worlds
 
 - The host sends its generation settings to each client in the `PeerInfo` handshake; clients generate the same world without copying sidecars.
 - Clients without Open Waters are rejected before they can generate terrain. They see the game's "wrong version" connection error.
 - Clients with Open Waters get a specific in-game message and are disconnected if the server's settings or generator version are incompatible.
-- A client with the mod joining a vanilla host plays a vanilla world and ignores its local sidecar, so local settings cannot corrupt the host's world.
+- A client with the mod joining a vanilla host plays a vanilla world and ignores its local sidecar, so local settings cannot corrupt the host's world. `LocalSidecarFallback` can override this for a manual sidecar fallback.
 - Setting `Enabled = false` keeps that client fully vanilla - it does not advertise the mod and does not apply server settings.
 
 ## Constraints
@@ -59,6 +59,8 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - World size is fixed; `WorldRadius` is used only for analysis and preview sampling.
 - `BiomeLimit` is stored in the sidecar but not applied.
 - Hosted worlds synchronize their generation settings to clients during the handshake; every client needs the mod. Steam Cloud saves are not synchronized: the sidecar is written to local storage and does not travel with the cloud save.
+- Local sidecars are matched by the vanilla world UID; a sidecar without a UID is ignored.
+- `LocalSidecarFallback` is off by default; enabling it can change terrain on a vanilla host.
 - Calibration has no disk cache; only preview textures are cached.
 
 ## Install
@@ -83,7 +85,7 @@ To build a release package locally:
 npm run build
 ```
 
-The Thunderstore package uses `docs/README.md` as its page. The repository `README.md` is for GitHub.
+The Thunderstore package uses `docs/README.md` as its page. The repository `README.md` is for GitHub. The changelog shipped in the package comes from `docs/CHANGELOG-STORE.md`, which is written by hand in player-facing language; the generated `CHANGELOG.md` stays in the repository for GitHub Release notes.
 
 The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.worldSettings`.
 
@@ -126,6 +128,7 @@ If there is no previous `v*` tag, the first changelog includes the full history;
 | --- | --- | --- |
 | General | `Enabled` | `true` |
 | General | `DebugSelfTest` | `false` |
+| General | `LocalSidecarFallback` | `false` |
 | Few | `LandFraction` | `0.27` |
 | Few | `FrequencyScale` | `0.60` |
 | Few | `PeakProtection` | `0.20` |
@@ -142,7 +145,7 @@ If there is no previous `v*` tag, the first changelog includes the full history;
 
 Commit messages follow Conventional Commits (lowercase type/scope/subject, max 72 characters); Husky `commit-msg` enforces it. Run `npm install` once after cloning. Pull request titles are checked by `.github/workflows/pr-title-check.yml`.
 
-Remaining work: [`docs/TODO.md`](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/TODO.md).
+Remaining work is tracked on the [Open Waters Board](https://github.com/users/Mkbewe/projects/6).
 
 ## License
 

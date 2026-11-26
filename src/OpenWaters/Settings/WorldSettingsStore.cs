@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 
 namespace OpenWaters
@@ -45,7 +46,7 @@ namespace OpenWaters
             _remote.Clear();
         }
 
-        public static WorldSettings FromCurrentSettings(string seed)
+        public static WorldSettings FromCurrentSettings(string seed, string uid = null)
         {
             return new WorldSettings(
                 OpenWatersSettings.IslandAmount,
@@ -63,15 +64,26 @@ namespace OpenWaters
                 OpenWatersSettings.MediumLandFraction,
                 OpenWatersSettings.MediumFrequencyScale,
                 OpenWatersSettings.MediumPeakProtection,
-                OpenWatersSettings.MediumDetailDamping);
+                OpenWatersSettings.MediumDetailDamping,
+                uid: uid);
         }
 
-        public static bool TryWriteForNewWorld(string name, string seed, out string error)
+        public static bool TryWriteForNewWorld(string name, string seed, long uid, out string error)
         {
             error = null;
-            if (string.IsNullOrEmpty(name) || seed == null)
+            if (string.IsNullOrEmpty(name))
             {
-                error = string.IsNullOrEmpty(name) ? "World name is empty." : "World seed is missing.";
+                error = "World name is empty.";
+                return false;
+            }
+            if (seed == null)
+            {
+                error = "World seed is missing.";
+                return false;
+            }
+            if (uid == 0L)
+            {
+                error = "World UID is missing.";
                 return false;
             }
 
@@ -90,16 +102,15 @@ namespace OpenWaters
                     Directory.CreateDirectory(directory);
                 }
 
+                string uidText = uid.ToString(CultureInfo.InvariantCulture);
                 string temporaryPath = path + ".tmp";
-                _storage.Write(
-                    temporaryPath,
-                    WorldSettingsCodec.Serialize(FromCurrentSettings(seed), seed));
+                _storage.Write(temporaryPath, WorldSettingsCodec.Serialize(FromCurrentSettings(seed, uidText), seed));
                 if (_storage.Exists(path))
                 {
                     _storage.Delete(path);
                 }
                 _storage.Move(temporaryPath, path);
-                OpenWatersPlugin.Log.LogInfo($"[Settings] Saved sidecar '{path}'.");
+                OpenWatersPlugin.Log.LogInfo($"[Settings] Saved sidecar '{path}' with uid '{uidText}'.");
                 return true;
             }
             catch (Exception exception)
@@ -114,9 +125,11 @@ namespace OpenWaters
         {
             LastStatus = SidecarStatus.Missing;
             LastMessage = string.Empty;
+
             if (world == null || world.m_menu)
             {
-                OpenWatersPlugin.Log.LogInfo("[Settings] Apply: menu or null world, staying vanilla.");
+                LastMessage = "Menu or null world; generation stays vanilla.";
+                OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
                 return WorldSettings.Vanilla;
             }
 
@@ -128,104 +141,13 @@ namespace OpenWaters
             }
 
             OpenWatersPlugin.Log.LogInfo(
-                $"[Settings] Apply: world='{world.m_worldName}', seed='{world.m_seedName}', " +
-                $"enabled={OpenWatersSettings.Enabled}.");
+                $"[Settings] World '{world.m_worldName}' uid={WorldUid(world) ?? "none"}.");
 
-            if (world.m_worldName == OpenWatersSettings.PreviewWorldName)
-            {
-                LastStatus = SidecarStatus.Ok;
-                WorldSettings preview = FromCurrentSettings(world.m_seedName);
-                OpenWatersPlugin.Log.LogInfo(
-                    $"[Settings] Apply: preview world, preset={GetDisplayName(preview)}, " +
-                    $"radius={preview.WorldRadius}, biomes={preview.StartBiomeLimit}, mountains={preview.ExcludeMountains}.");
-                return preview;
-            }
-
-            RemoteSettingsStatus remoteStatus = _remote.Resolve(world.m_seedName, out WorldSettings remoteSettings);
-            if (remoteStatus != RemoteSettingsStatus.NotReceived)
-            {
-                switch (remoteStatus)
-                {
-                    case RemoteSettingsStatus.Accepted:
-                        LastStatus = SidecarStatus.Ok;
-                        LastMessage = $"Using settings received from the server for seed '{world.m_seedName}'.";
-                        OpenWatersPlugin.Log.LogInfo(
-                            $"[Settings] {LastMessage}; preset={GetDisplayName(remoteSettings)}, " +
-                            $"radius={remoteSettings.WorldRadius}, biomes={remoteSettings.StartBiomeLimit}, " +
-                            $"mountains={remoteSettings.ExcludeMountains}, " +
-                            $"generatorVersion={remoteSettings.GeneratorVersionValue}.");
-                        return remoteSettings;
-                    case RemoteSettingsStatus.NoSnapshot:
-                        LastStatus = SidecarStatus.Missing;
-                        LastMessage = "Server does not use Open Waters; generation stays vanilla.";
-                        break;
-                    case RemoteSettingsStatus.SeedMismatch:
-                        LastStatus = SidecarStatus.Invalid;
-                        LastMessage = "Server world settings belong to a different seed; generation stays vanilla.";
-                        break;
-                    case RemoteSettingsStatus.InvalidPayload:
-                        LastStatus = SidecarStatus.Invalid;
-                        LastMessage = "Server world settings are incompatible; generation stays vanilla.";
-                        break;
-                    case RemoteSettingsStatus.IncompatibleGenerator:
-                        LastStatus = SidecarStatus.Invalid;
-                        LastMessage =
-                            $"Server uses generator version {remoteSettings.GeneratorVersionValue}, " +
-                            $"this mod supports {WorldSettings.SupportedVersionsText}.";
-                        break;
-                }
-                OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
-                return WorldSettings.Vanilla;
-            }
-
-            string path = FindSidecarPath(world);
-            OpenWatersPlugin.Log.LogInfo($"[Settings] Sidecar path: '{path ?? "none"}'.");
-            if (path == null || !_storage.Exists(path))
-            {
-                LastMessage = $"No sidecar for '{world.m_worldName}'; using vanilla generation.";
-                OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
-                return WorldSettings.Vanilla;
-            }
-
-            WorldSettings settings;
-            try
-            {
-                if (!WorldSettingsCodec.TryParse(_storage.Read(path), world.m_seedName, out settings))
-                {
-                    LastStatus = SidecarStatus.Invalid;
-                    LastMessage = $"Sidecar for '{world.m_worldName}' is unreadable or has an incompatible format.";
-                    OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
-                    return WorldSettings.Vanilla;
-                }
-            }
-            catch (Exception exception)
-            {
-                LastStatus = SidecarStatus.Invalid;
-                LastMessage = $"Failed to read sidecar for '{world.m_worldName}': {exception.Message}";
-                OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
-                return WorldSettings.Vanilla;
-            }
-
-            if (!settings.IsGeneratorCompatible)
-            {
-                int found = settings.GeneratorVersionValue;
-                settings = WorldSettings.Vanilla;
-                LastStatus = SidecarStatus.Invalid;
-                LastMessage =
-                    $"World '{world.m_worldName}' was generated by generator version {found}, " +
-                    $"but this mod supports {WorldSettings.SupportedVersionsText}.";
-                OpenWatersPlugin.Log.LogError($"[Settings] {LastMessage}");
-                return settings;
-            }
-
-            LastStatus = SidecarStatus.Ok;
-            LastMessage = $"Loaded settings for '{world.m_worldName}'";
-            OpenWatersPlugin.Log.LogInfo(
-                $"[Settings] {LastMessage}: file='{path}', seed='{world.m_seedName}', " +
-                $"preset={GetDisplayName(settings)}, radius={settings.WorldRadius}, " +
-                $"biomes={settings.StartBiomeLimit}, mountains={settings.ExcludeMountains}, " +
-                $"generatorVersion={settings.GeneratorVersionValue}, modVersion={settings.ModVersion}.");
-            return settings;
+            Resolution resolution = Resolve(world);
+            LastStatus = resolution.Status;
+            LastMessage = resolution.Message;
+            OpenWatersPlugin.Log.LogInfo($"[Settings] {LastMessage}");
+            return resolution.Settings;
         }
 
         public static SidecarStatus ValidateForLoad(World world)
@@ -240,35 +162,122 @@ namespace OpenWaters
                 settings.IslandAmount == WorldSettings.MediumIslands ? "Medium" : "Vanilla";
         }
 
-        private static string FindSidecarPath(World world)
+        private static Resolution Resolve(World world)
         {
-            string byName = GetSidecarPath(world.m_worldName);
-            if (byName != null)
+            if (world.m_worldName == OpenWatersSettings.PreviewWorldName)
             {
-                return byName;
+                WorldSettings preview = FromCurrentSettings(world.m_seedName);
+                return Ok(preview, $"Preview world: preset={GetDisplayName(preview)}.");
             }
-            if (string.IsNullOrEmpty(world.m_seedName))
+
+            RemoteSettingsStatus remote = _remote.Resolve(world.m_seedName, out WorldSettings remoteSettings);
+            if (remote == RemoteSettingsStatus.Accepted)
             {
-                return null;
+                return Ok(
+                    remoteSettings,
+                    $"Using settings received from the server for seed '{world.m_seedName}': " +
+                    $"preset={GetDisplayName(remoteSettings)}.");
+            }
+
+            if (remote != RemoteSettingsStatus.NotReceived && !OpenWatersSettings.LocalSidecarFallback)
+            {
+                return Vanilla(remote, DescribeRemote(remote, remoteSettings));
+            }
+
+            return ResolveLocal(world, remote, remoteSettings);
+        }
+
+        private static Resolution ResolveLocal(
+            World world, RemoteSettingsStatus remote, WorldSettings remoteSettings)
+        {
+            string prefix = remote == RemoteSettingsStatus.NotReceived
+                ? string.Empty
+                : DescribeRemote(remote, remoteSettings) + " ";
+
+            string uid = WorldUid(world);
+            if (uid == null)
+            {
+                return Vanilla(remote, prefix + "World UID is unavailable.");
+            }
+
+            string path = FindSidecarPath(uid);
+            if (path == null)
+            {
+                return Vanilla(remote, prefix + "No local sidecar found.");
             }
 
             try
             {
-                string root = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local);
-                string[] directories = _storage.GetDirectories(root);
-                OpenWatersPlugin.Log.LogInfo(
-                    $"[Settings] World name is empty; searching {directories.Length} local folders for seed '{world.m_seedName}'.");
-                string found = SidecarLocator.FindBySeed(
-                    directories,
-                    world.m_seedName,
-                    path => _storage.Exists(path) ? _storage.Read(path) : null,
-                    directory => Path.Combine(directory, SidecarFileName));
-                OpenWatersPlugin.Log.LogInfo($"[Settings] Seed search result: '{found ?? "none"}'.");
-                return found;
+                if (!WorldSettingsCodec.TryParseByUid(_storage.Read(path), uid, out WorldSettings settings))
+                {
+                    return Invalid(prefix + $"Sidecar '{path}' has no matching UID.");
+                }
+                if (!settings.IsGeneratorCompatible)
+                {
+                    return Invalid(
+                        prefix + $"Sidecar '{path}' uses generator version {settings.GeneratorVersionValue}; " +
+                        $"this mod supports {WorldSettings.SupportedVersionsText}.");
+                }
+                return Ok(
+                    settings,
+                    prefix + $"Loaded local sidecar '{path}': uid={settings.Uid}, " +
+                    $"preset={GetDisplayName(settings)}.");
             }
             catch (Exception exception)
             {
-                OpenWatersPlugin.Log.LogWarning($"[Settings] Could not search sidecars by seed: {exception.Message}");
+                return Invalid(prefix + $"Failed to read sidecar '{path}': {exception.Message}");
+            }
+        }
+
+        private static string DescribeRemote(RemoteSettingsStatus status, WorldSettings settings)
+        {
+            return status switch
+            {
+                RemoteSettingsStatus.NoSnapshot => "Server does not use Open Waters.",
+                RemoteSettingsStatus.SeedMismatch => "Server world settings belong to a different seed.",
+                RemoteSettingsStatus.InvalidPayload => "Server world settings are incompatible.",
+                RemoteSettingsStatus.IncompatibleGenerator =>
+                    $"Server uses generator version {settings.GeneratorVersionValue}; " +
+                    $"this mod supports {WorldSettings.SupportedVersionsText}.",
+                _ => "Server settings are unavailable."
+            };
+        }
+
+        private static Resolution Ok(WorldSettings settings, string message) =>
+            new Resolution(settings, SidecarStatus.Ok, message);
+
+        private static Resolution Vanilla(RemoteSettingsStatus remote, string message) =>
+            new Resolution(
+                WorldSettings.Vanilla,
+                remote == RemoteSettingsStatus.NoSnapshot || remote == RemoteSettingsStatus.NotReceived
+                    ? SidecarStatus.Missing
+                    : SidecarStatus.Invalid,
+                message);
+
+        private static Resolution Invalid(string message) =>
+            new Resolution(WorldSettings.Vanilla, SidecarStatus.Invalid, message);
+
+        private static string WorldUid(World world)
+        {
+            return world != null && world.m_uid != 0L
+                ? world.m_uid.ToString(CultureInfo.InvariantCulture)
+                : null;
+        }
+
+        private static string FindSidecarPath(string uid)
+        {
+            try
+            {
+                string root = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local);
+                string[] directories = _storage.GetDirectories(root);
+                Func<string, string> read = path =>
+                    _storage.Exists(path) ? _storage.Read(path) : null;
+                Func<string, string> toPath = directory => Path.Combine(directory, SidecarFileName);
+                return SidecarLocator.FindByUid(directories, uid, read, toPath);
+            }
+            catch (Exception exception)
+            {
+                OpenWatersPlugin.Log.LogWarning($"[Settings] Sidecar search failed: {exception.Message}");
                 return null;
             }
         }
@@ -298,6 +307,20 @@ namespace OpenWaters
                     $"[Settings] Failed to resolve save directory for '{worldName}': {exception.Message}");
                 return null;
             }
+        }
+
+        private readonly struct Resolution
+        {
+            public Resolution(WorldSettings settings, SidecarStatus status, string message)
+            {
+                Settings = settings;
+                Status = status;
+                Message = message;
+            }
+
+            public WorldSettings Settings { get; }
+            public SidecarStatus Status { get; }
+            public string Message { get; }
         }
     }
 }

@@ -18,7 +18,7 @@ Open Waters is for players who want fewer islands, more ocean, more sailing, and
 - **New-world preview:** compare land and biomes for a seed before creating the world.
 - **Starting-island controls:** remove high mountains and limit the biomes on the starting island.
 - **Vanilla coastlines:** terrain is lowered instead of deleting land.
-- **Per-world settings:** a sidecar stores the settings used when the world was created.
+- **Per-world settings:** a sidecar stores the settings used when the world was created and the vanilla world UID.
 
 Few targets about 27% of vanilla land; Medium about 50%. These values are relative to the same seed in vanilla, not the whole map.
 
@@ -114,7 +114,7 @@ It is designed around new worlds. Existing worlds are not reshaped, and you shou
 
 ### Does Open Waters work in multiplayer?
 
-Yes for hosted worlds. The host sends its world settings to every client during the `PeerInfo` handshake, so all players generate the same terrain. Every client needs Open Waters installed; clients without the mod are rejected before they can generate anything, and clients with incompatible settings get a clear message and are disconnected. Dedicated servers are not supported yet.
+Yes for hosted worlds. The host sends its world settings to every client during the `PeerInfo` handshake, so all players generate the same terrain. Every client needs Open Waters installed; clients without the mod are rejected before they can generate anything, and clients with incompatible settings get a clear message and are disconnected. If the settings are not received, enable `LocalSidecarFallback` and copy `OpenWaters.worldSettings`; the client matches it by the world UID. Dedicated servers are not supported yet.
 
 ### Is Open Waters compatible with other world-generation mods?
 
@@ -124,7 +124,8 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 
 - **Hosted worlds need Open Waters on every client.** The host synchronizes settings during the handshake; clients without the mod are rejected with the game's "wrong version" error. Clients with the mod get a specific in-game message when settings are incompatible, and are disconnected.
 - **Steam Cloud is not synchronized.** `OpenWaters.worldSettings` stays in local storage and does not travel with a cloud save.
-- **Seed-based sidecar lookup is a local-world fallback.** When joining a hosted world the client uses the settings received from the host and ignores its local sidecar. A stable world UID is still planned for local worlds with duplicate seeds.
+- **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
+- **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
 - **Preview generation can briefly freeze the game.**
 - **Boss and location placement changes.** Fewer islands change how many locations are generated, including boss altars. Testing confirmed boss locations can spawn, but 100% reliability cannot be guaranteed.
 - **The game can be much harder.** Fewer islands mean fewer resources and longer journeys. With Max biomes: 1, reaching a Black Forest may require building a raft.

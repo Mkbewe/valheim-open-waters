@@ -124,11 +124,11 @@ When you create a world, the current settings are saved in a plain-text file cal
 
 This is where the world's local files (`.db`, `.fwl`, map caches) live. The path is the same for local and Steam Cloud worlds - for a cloud world the authoritative save is in Steam Cloud, so the sidecar stays on this machine and does **not** travel with the world. The sidecar is not synchronized with Steam Cloud; use local worlds or copy the file manually. See [Known limitations](#known-limitations-alpha).
 
-If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no matching sidecar can be found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local sidecar; see [Hosted worlds](#hosted-worlds).
+If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no sidecar with the matching world UID is found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local sidecar; see [Hosted worlds](#hosted-worlds).
 
-The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion` and the seed. Changing the config later does not change an existing world.
+The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion`, the seed and the vanilla world `uid`. Changing the config later does not change an existing world.
 
-If a sidecar exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no sidecar is treated as vanilla.
+If a sidecar exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no usable sidecar, including a sidecar without a UID, is treated as vanilla.
 
 ## Hosted worlds
 
@@ -141,7 +141,9 @@ Open Waters synchronizes generation settings between the host and the clients. Y
 
 **Clients without Open Waters** cannot join a hosted world that uses custom settings. The host rejects them before they generate any terrain; they see the game's "wrong version" connection error.
 
-**Clients with Open Waters** receive a specific in-game message and are disconnected when the server's payload is invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local sidecar.
+**Clients with Open Waters** receive a specific in-game message and are disconnected when the server's payload is invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local sidecar unless `LocalSidecarFallback` is enabled.
+
+If the host's settings are not received, enable `LocalSidecarFallback` in `valheim.openwaters.cfg` and copy the host's `OpenWaters.worldSettings` into any world folder on the client under `worlds_local`. The client matches the file by the world UID from the vanilla handshake, not by seed.
 
 Setting `Enabled = false` in `valheim.openwaters.cfg` keeps that client fully vanilla: it does not advertise the mod and does not apply server settings. Such a client cannot join a hosted world that requires Open Waters.
 
@@ -159,6 +161,7 @@ In an r2modman/Thunderstore profile, look in that profile's `BepInEx\config` fol
 | --- | --- | --- |
 | General | `Enabled` | `true` |
 | General | `DebugSelfTest` | `false` |
+| General | `LocalSidecarFallback` | `false` |
 | Few | `LandFraction` | `0.27` |
 | Few | `FrequencyScale` | `0.60` |
 | Few | `PeakProtection` | `0.20` |
@@ -173,11 +176,14 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 
 `DebugSelfTest` is a diagnostic switch: with it enabled, the mod runs a short set of world-settings checks at startup and writes `PASS`/`FAIL` lines to `BepInEx/LogOutput.log`. Leave it off for normal play.
 
+`LocalSidecarFallback` lets the client use a manually copied sidecar when the host does not provide compatible settings. Leave it off for normal play: on a vanilla host, a local sidecar can change the terrain and desync the client.
+
 ## Known limitations (alpha)
 
 - **Hosted worlds require the mod on every client.** Settings are synchronized from the host during the handshake; see [Hosted worlds](#hosted-worlds).
 - **Steam Cloud saves are not synchronized.** `OpenWaters.worldSettings` is always written to local storage and is not uploaded with the cloud save, so another machine loading that world from the cloud will generate vanilla terrain. Use local worlds or copy the sidecar manually.
-- **Seed-based sidecar lookup applies to local worlds.** When joining a hosted world the client uses the settings received from the host and ignores local sidecars. For local worlds with duplicate seeds, a stable world UID is still planned.
+- **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
+- **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
 - World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
 - `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
 - No disk cache for terrain calibration.

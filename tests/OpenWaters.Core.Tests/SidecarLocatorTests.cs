@@ -6,15 +6,17 @@ public class SidecarLocatorTests
 
     private static string ToPath(string directory) => directory + "/OpenWaters.worldSettings";
 
-    [Fact]
-    public void FindsSidecarBySeedWhenWorldNameIsMissing()
-    {
-        string sidecar = WorldSettingsCodec.Serialize(
-            new WorldSettings(WorldSettings.FewIslands, 10000, 0, 1, true), "seed-a");
+    private static WorldSettings Sample(string uid) =>
+        new WorldSettings(WorldSettings.FewIslands, 10000, 0, 1, true, uid: uid);
 
-        string found = SidecarLocator.FindBySeed(
+    [Fact]
+    public void FindsSidecarByUidWhenWorldNameIsMissing()
+    {
+        string sidecar = WorldSettingsCodec.Serialize(Sample("uid-a"), "seed-a");
+
+        string found = SidecarLocator.FindByUid(
             Directories,
-            "seed-a",
+            "uid-a",
             path => path == ToPath("worlds/two") ? sidecar : null,
             ToPath);
 
@@ -22,26 +24,24 @@ public class SidecarLocatorTests
     }
 
     [Fact]
-    public void WrongSeedOrMissingSidecar_ReturnsNull()
+    public void WrongUidOrMissingSidecar_ReturnsNull()
     {
-        string sidecar = WorldSettingsCodec.Serialize(
-            new WorldSettings(WorldSettings.FewIslands, 10000, 0, 1, true), "seed-a");
+        string sidecar = WorldSettingsCodec.Serialize(Sample("uid-a"), "seed-a");
 
-        Assert.Null(SidecarLocator.FindBySeed(
-            Directories, "seed-b", path => sidecar, ToPath));
-        Assert.Null(SidecarLocator.FindBySeed(
-            Directories, "seed-a", path => null, ToPath));
+        Assert.Null(SidecarLocator.FindByUid(
+            Directories, "uid-b", path => sidecar, ToPath));
+        Assert.Null(SidecarLocator.FindByUid(
+            Directories, "uid-a", path => null, ToPath));
     }
 
     [Fact]
     public void UnreadableDirectory_DoesNotStopSearch()
     {
-        string sidecar = WorldSettingsCodec.Serialize(
-            new WorldSettings(WorldSettings.FewIslands, 10000, 0, 1, true), "seed-a");
+        string sidecar = WorldSettingsCodec.Serialize(Sample("uid-a"), "seed-a");
 
-        string found = SidecarLocator.FindBySeed(
+        string found = SidecarLocator.FindByUid(
             Directories,
-            "seed-a",
+            "uid-a",
             path =>
             {
                 if (path == ToPath("worlds/one"))

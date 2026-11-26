@@ -16,6 +16,7 @@ $manifestPath = Join-Path $repoRoot "manifest.json"
 $packagePath = Join-Path $repoRoot "package.json"
 $packageLockPath = Join-Path $repoRoot "package-lock.json"
 $changelogPath = Join-Path $repoRoot "CHANGELOG.md"
+$storeChangelogPath = Join-Path $repoRoot "docs\CHANGELOG-STORE.md"
 $packageReadmePath = Join-Path $repoRoot "docs\README.md"
 $licensePath = Join-Path $repoRoot "LICENSE"
 $noticesPath = Join-Path $repoRoot "THIRD-PARTY-NOTICES.md"
@@ -36,6 +37,10 @@ if (-not (Test-Path -LiteralPath $manifestPath)) {
 
 if (-not (Test-Path -LiteralPath $changelogPath)) {
     throw "CHANGELOG.md not found."
+}
+
+if (-not (Test-Path -LiteralPath $storeChangelogPath)) {
+    throw "docs\CHANGELOG-STORE.md not found."
 }
 
 if (-not (Test-Path -LiteralPath $packageReadmePath)) {
@@ -127,7 +132,7 @@ $pluginPackageDir = Join-Path $stagingPath "BepInEx\plugins\OpenWaters"
 New-Item -ItemType Directory -Force -Path $pluginPackageDir | Out-Null
 
 Copy-Item -LiteralPath $manifestPath -Destination $stagingPath
-Copy-Item -LiteralPath $changelogPath -Destination $stagingPath
+Copy-Item -LiteralPath $storeChangelogPath -Destination (Join-Path $stagingPath "CHANGELOG.md")
 Copy-Item -LiteralPath $packageReadmePath -Destination (Join-Path $stagingPath "README.md")
 Copy-Item -LiteralPath $licensePath -Destination $stagingPath
 Copy-Item -LiteralPath $noticesPath -Destination $stagingPath

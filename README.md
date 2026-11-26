@@ -85,7 +85,7 @@ To build a release package locally:
 npm run build
 ```
 
-The Thunderstore package uses `docs/README.md` as its page. The repository `README.md` is for GitHub. The changelog shipped in the package comes from `docs/CHANGELOG-STORE.md`, which is written by hand in player-facing language; the generated `CHANGELOG.md` stays in the repository for GitHub Release notes.
+The Thunderstore package uses `docs/README.md` as its page. The repository `README.md` is for GitHub. The changelog shipped in the package comes from `docs/CHANGELOG-STORE.md`, which is written by hand in player-facing language; the generated `CHANGELOG.md` stays in the repository for GitHub Release notes. Add a section for the next version and commit it before running the release; the release script refuses to start without it.
 
 The script validates the version in `manifest.json`, `package.json`, `package-lock.json` and `Plugin.cs`, checks the 256x256 icon, runs the core tests, builds `Release`, and writes `release/MkbewePP-OpenWaters-<version>.zip`. The package contains the DLL, manifest, icon, README, changelog and license files. It deliberately excludes `valheim.openwaters.cfg` and `OpenWaters.worldSettings`.
 

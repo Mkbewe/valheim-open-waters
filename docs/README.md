@@ -123,7 +123,7 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 ## Known limitations
 
 - **Hosted worlds need Open Waters on every client.** The host synchronizes settings during the handshake; clients without the mod are rejected with the game's "wrong version" error. Clients with the mod get a specific in-game message when settings are incompatible, and are disconnected.
-- **Steam Cloud is not synchronized.** `OpenWaters.worldSettings` stays in local storage and does not travel with a cloud save.
+- **Steam Cloud keeps the sidecar with the world.** A cloud world stores `OpenWaters.worldSettings` in its cloud save folder; local worlds use `worlds_local`. If cloud storage is unavailable, the sidecar falls back to local storage.
 - **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
 - **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
 - **Preview generation can briefly freeze the game.**

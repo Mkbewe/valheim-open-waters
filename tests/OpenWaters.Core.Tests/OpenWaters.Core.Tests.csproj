@@ -29,6 +29,7 @@
     <Compile Include="..\..\src\OpenWaters\Core\PeerInfoProtocol.cs" Link="PeerInfoProtocol.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\PeerInfoPayload.cs" Link="PeerInfoPayload.cs" />
     <Compile Include="..\..\src\OpenWaters\Core\RemoteSettingsState.cs" Link="RemoteSettingsState.cs" />
+    <Compile Include="..\..\src\OpenWaters\Core\SidecarCopier.cs" Link="SidecarCopier.cs" />
   </ItemGroup>
 
 </Project>

@@ -24,6 +24,21 @@ public class SidecarLocatorTests
     }
 
     [Fact]
+    public void SameSeedDifferentUids_SelectsMatchingSidecar()
+    {
+        string first = WorldSettingsCodec.Serialize(Sample("uid-a"), "same-seed");
+        string second = WorldSettingsCodec.Serialize(Sample("uid-b"), "same-seed");
+
+        string found = SidecarLocator.FindByUid(
+            Directories,
+            "uid-b",
+            path => path == ToPath("worlds/one") ? first : second,
+            ToPath);
+
+        Assert.Equal(ToPath("worlds/two"), found);
+    }
+
+    [Fact]
     public void WrongUidOrMissingSidecar_ReturnsNull()
     {
         string sidecar = WorldSettingsCodec.Serialize(Sample("uid-a"), "seed-a");

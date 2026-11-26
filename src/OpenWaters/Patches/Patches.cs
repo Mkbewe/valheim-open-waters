@@ -94,7 +94,8 @@ namespace OpenWaters
             }
 
             string seed = startup.m_newWorldSeed.text;
-            if (!WorldSettingsStore.TryWriteForNewWorld(name, seed, world.m_uid, out string error))
+            if (!WorldSettingsStore.TryWriteForNewWorld(
+                    name, seed, world.m_uid, world.m_fileSource, out string error))
             {
                 string message =
                     $"Could not save Open Waters settings for world '{name}': {error}. " +

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 
 namespace OpenWaters
 {
@@ -15,7 +17,8 @@ namespace OpenWaters
     {
         private const string SidecarFileName = "OpenWaters.worldSettings";
 
-        private static ISidecarStorage _storage = new FileSidecarStorage();
+        private static ISidecarStorage _localStorage = new FileSidecarStorage();
+        private static ISidecarStorage _cloudStorage = new CloudSidecarStorage();
 
         public static SidecarStatus LastStatus { get; private set; } = SidecarStatus.Missing;
         public static string LastMessage { get; private set; } = string.Empty;
@@ -23,7 +26,26 @@ namespace OpenWaters
 
         internal static void SetStorage(ISidecarStorage storage)
         {
-            _storage = storage ?? new FileSidecarStorage();
+            _localStorage = storage ?? new FileSidecarStorage();
+            _cloudStorage = new CloudSidecarStorage();
+        }
+
+        private static FileHelpers.FileSource NormalizeSource(FileHelpers.FileSource source)
+        {
+            if (source == FileHelpers.FileSource.Local)
+            {
+                return FileHelpers.FileSource.Local;
+            }
+            return FileHelpers.CloudStorageSupportedAndEnabled
+                ? FileHelpers.FileSource.Cloud
+                : FileHelpers.FileSource.Local;
+        }
+
+        private static ISidecarStorage GetStorage(FileHelpers.FileSource source)
+        {
+            return NormalizeSource(source) == FileHelpers.FileSource.Cloud
+                ? _cloudStorage
+                : _localStorage;
         }
 
         public static void SetRemoteSnapshot(WorldSettings settings, string seed)
@@ -68,7 +90,8 @@ namespace OpenWaters
                 uid: uid);
         }
 
-        public static bool TryWriteForNewWorld(string name, string seed, long uid, out string error)
+        public static bool TryWriteForNewWorld(
+            string name, string seed, long uid, FileHelpers.FileSource source, out string error)
         {
             error = null;
             if (string.IsNullOrEmpty(name))
@@ -87,38 +110,93 @@ namespace OpenWaters
                 return false;
             }
 
-            string path = GetSidecarPath(name);
+            source = NormalizeSource(source);
+            string path = GetSidecarPath(name, source);
             if (path == null)
             {
-                error = "Could not resolve the local save directory.";
+                error = "Could not resolve the save directory.";
                 return false;
+            }
+
+            string uidText = uid.ToString(CultureInfo.InvariantCulture);
+            string text = WorldSettingsCodec.Serialize(FromCurrentSettings(seed, uidText), seed);
+
+            if (source == FileHelpers.FileSource.Cloud &&
+                (!FileHelpers.CloudStorageSupportedAndEnabled ||
+                 FileHelpers.OperationExceedsCloudCapacity(
+                     FileHelpers.FileSource.Cloud,
+                     (ulong)Encoding.UTF8.GetByteCount(text), 1)))
+            {
+                OpenWatersPlugin.Log.LogWarning(
+                    "[Settings] Cloud storage unavailable or full; writing the sidecar locally.");
+                source = FileHelpers.FileSource.Local;
+                path = GetSidecarPath(name, source);
+                if (path == null)
+                {
+                    error = "Could not resolve the local save directory.";
+                    return false;
+                }
             }
 
             try
             {
-                string directory = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                string uidText = uid.ToString(CultureInfo.InvariantCulture);
-                string temporaryPath = path + ".tmp";
-                _storage.Write(temporaryPath, WorldSettingsCodec.Serialize(FromCurrentSettings(seed, uidText), seed));
-                if (_storage.Exists(path))
-                {
-                    _storage.Delete(path);
-                }
-                _storage.Move(temporaryPath, path);
-                OpenWatersPlugin.Log.LogInfo($"[Settings] Saved sidecar '{path}' with uid '{uidText}'.");
+                WriteSidecar(path, source, text);
+                OpenWatersPlugin.Log.LogInfo(
+                    $"[Settings] Saved sidecar '{path}' with uid '{uidText}' in {source} storage.");
                 return true;
             }
             catch (Exception exception)
             {
+                OpenWatersPlugin.Log.LogWarning(
+                    $"[Settings] Could not write sidecar to {source} storage: {exception.Message}");
+                if (source == FileHelpers.FileSource.Cloud)
+                {
+                    string localPath = GetSidecarPath(name, FileHelpers.FileSource.Local);
+                    if (localPath != null)
+                    {
+                        try
+                        {
+                            WriteSidecar(localPath, FileHelpers.FileSource.Local, text);
+                            OpenWatersPlugin.Log.LogWarning(
+                                $"[Settings] Sidecar written locally instead: '{localPath}'.");
+                            path = localPath;
+                            return true;
+                        }
+                        catch (Exception localException)
+                        {
+                            OpenWatersPlugin.Log.LogError(
+                                $"[Settings] Local sidecar fallback failed: {localException.Message}");
+                            error = localException.Message;
+                            return false;
+                        }
+                    }
+                }
                 error = exception.Message;
-                OpenWatersPlugin.Log.LogError($"[Settings] Failed to write sidecar '{path}': {exception}");
                 return false;
             }
+        }
+
+        private static void WriteSidecar(string path, FileHelpers.FileSource source, string text)
+        {
+            ISidecarStorage storage = GetStorage(source);
+            if (source == FileHelpers.FileSource.Cloud)
+            {
+                storage.Write(path, text);
+                return;
+            }
+
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+            string temporaryPath = path + ".tmp";
+            storage.Write(temporaryPath, text);
+            if (storage.Exists(path))
+            {
+                storage.Delete(path);
+            }
+            storage.Move(temporaryPath, path);
         }
 
         public static WorldSettings Apply(World world)
@@ -187,6 +265,58 @@ namespace OpenWaters
             return ResolveLocal(world, remote, remoteSettings);
         }
 
+        private static void TryMigrateSidecar(
+            string worldName, string path, FileHelpers.FileSource from,
+            FileHelpers.FileSource to, string uid)
+        {
+            to = NormalizeSource(to);
+            try
+            {
+                string text = GetStorage(from).Read(path);
+                if (to == FileHelpers.FileSource.Cloud &&
+                    (!FileHelpers.CloudStorageSupportedAndEnabled ||
+                     FileHelpers.OperationExceedsCloudCapacity(
+                         FileHelpers.FileSource.Cloud,
+                         (ulong)Encoding.UTF8.GetByteCount(text), 1)))
+                {
+                    OpenWatersPlugin.Log.LogWarning(
+                        "[Settings] Cloud unavailable or full during sidecar migration; using local storage.");
+                    to = FileHelpers.FileSource.Local;
+                }
+
+                string destination = GetSidecarPath(worldName, to);
+                if (string.IsNullOrEmpty(destination))
+                {
+                    return;
+                }
+                if (to == FileHelpers.FileSource.Local)
+                {
+                    string directory = Path.GetDirectoryName(destination);
+                    if (!string.IsNullOrEmpty(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+                }
+                bool copied = SidecarCopier.TryCopy(
+                    GetStorage(from), path, GetStorage(to), destination, uid);
+                if (copied)
+                {
+                    OpenWatersPlugin.Log.LogInfo(
+                        $"[Settings] Copied sidecar from {from} to {to} storage for uid '{uid}'.");
+                }
+                else
+                {
+                    OpenWatersPlugin.Log.LogWarning(
+                        $"[Settings] Sidecar copy from {from} to {to} failed for uid '{uid}'.");
+                }
+            }
+            catch (Exception exception)
+            {
+                OpenWatersPlugin.Log.LogWarning(
+                    $"[Settings] Could not copy sidecar to {to} storage: {exception.Message}");
+            }
+        }
+
         private static Resolution ResolveLocal(
             World world, RemoteSettingsStatus remote, WorldSettings remoteSettings)
         {
@@ -200,15 +330,22 @@ namespace OpenWaters
                 return Vanilla(remote, prefix + "World UID is unavailable.");
             }
 
-            string path = FindSidecarPath(uid);
+            string path = FindSidecarPath(world, uid, out FileHelpers.FileSource foundSource);
             if (path == null)
             {
-                return Vanilla(remote, prefix + "No local sidecar found.");
+                return Vanilla(remote, prefix + "No sidecar found.");
+            }
+
+            FileHelpers.FileSource primary = NormalizeSource(world.m_fileSource);
+            if (foundSource != primary)
+            {
+                TryMigrateSidecar(world.m_worldName, path, foundSource, primary, uid);
             }
 
             try
             {
-                if (!WorldSettingsCodec.TryParseByUid(_storage.Read(path), uid, out WorldSettings settings))
+                if (!WorldSettingsCodec.TryParseByUid(
+                        GetStorage(foundSource).Read(path), uid, out WorldSettings settings))
                 {
                     return Invalid(prefix + $"Sidecar '{path}' has no matching UID.");
                 }
@@ -264,25 +401,56 @@ namespace OpenWaters
                 : null;
         }
 
-        private static string FindSidecarPath(string uid)
+        private static string FindSidecarPath(
+            World world, string uid, out FileHelpers.FileSource foundSource)
         {
-            try
+            FileHelpers.FileSource primary = NormalizeSource(
+                world != null ? world.m_fileSource : FileHelpers.FileSource.Local);
+            FileHelpers.FileSource fallback = primary == FileHelpers.FileSource.Local
+                ? FileHelpers.FileSource.Cloud
+                : FileHelpers.FileSource.Local;
+            foundSource = primary;
+
+            HashSet<string> searchedRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (FileHelpers.FileSource source in new[] { primary, fallback })
             {
-                string root = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local);
-                string[] directories = _storage.GetDirectories(root);
-                Func<string, string> read = path =>
-                    _storage.Exists(path) ? _storage.Read(path) : null;
-                Func<string, string> toPath = directory => Path.Combine(directory, SidecarFileName);
-                return SidecarLocator.FindByUid(directories, uid, read, toPath);
+                FileHelpers.FileSource normalized = NormalizeSource(source);
+                if (normalized == FileHelpers.FileSource.Cloud &&
+                    !FileHelpers.CloudStorageSupportedAndEnabled)
+                {
+                    continue;
+                }
+                string root = SaveSystem.GetWorldsSaveRootPath(normalized);
+                if (string.IsNullOrEmpty(root) || !searchedRoots.Add(root))
+                {
+                    continue;
+                }
+                try
+                {
+                    ISidecarStorage storage = GetStorage(normalized);
+                    string[] directories = storage.GetDirectories(root);
+                    Func<string, string> read = path =>
+                        storage.Exists(path) ? storage.Read(path) : null;
+                    Func<string, string> toPath = directory => Path.Combine(directory, SidecarFileName);
+                    string found = SidecarLocator.FindByUid(directories, uid, read, toPath);
+                    if (found != null)
+                    {
+                        foundSource = normalized;
+                        OpenWatersPlugin.Log.LogInfo(
+                            $"[Settings] Sidecar found in {normalized} save root: '{found}'.");
+                        return found;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    OpenWatersPlugin.Log.LogWarning(
+                        $"[Settings] Sidecar search failed in {normalized} root: {exception.Message}");
+                }
             }
-            catch (Exception exception)
-            {
-                OpenWatersPlugin.Log.LogWarning($"[Settings] Sidecar search failed: {exception.Message}");
-                return null;
-            }
+            return null;
         }
 
-        private static string GetSidecarPath(string worldName)
+        private static string GetSidecarPath(string worldName, FileHelpers.FileSource source)
         {
             if (string.IsNullOrEmpty(worldName) || worldName == "." || worldName == "..")
             {
@@ -298,13 +466,17 @@ namespace OpenWaters
 
             try
             {
-                string directory = SaveSystem.GetWorldsSaveRootPath(FileHelpers.FileSource.Local) + "/" + worldName + "/";
-                return Path.Combine(directory, SidecarFileName);
+                string root = SaveSystem.GetWorldsSaveRootPath(source);
+                if (string.IsNullOrEmpty(root))
+                {
+                    return null;
+                }
+                return Path.Combine(root, worldName, SidecarFileName);
             }
             catch (Exception exception)
             {
                 OpenWatersPlugin.Log.LogWarning(
-                    $"[Settings] Failed to resolve save directory for '{worldName}': {exception.Message}");
+                    $"[Settings] Failed to resolve {source} save directory for '{worldName}': {exception.Message}");
                 return null;
             }
         }

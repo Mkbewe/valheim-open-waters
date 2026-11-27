@@ -14,7 +14,7 @@ Valheim 1.0.21 mod for BepInEx that increases open ocean and reduces the number 
 
 ## Facts
 
-- Version: `0.2.0`
+- Version: `0.2.1`
 - Plugin GUID: `valheim.openwaters`
 - Assembly / namespace: `OpenWaters`
 - Target: `netstandard2.1`

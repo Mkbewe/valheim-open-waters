@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.2.1](https://github.com/Mkbewe/valheim-open-waters/compare/v0.2.0...v0.2.1) (2026-11-27)
+
+### Features
+
+* **42:** match local world settings by UID ([#62](https://github.com/Mkbewe/valheim-open-waters/issues/62)) ([f37a3f8](https://github.com/Mkbewe/valheim-open-waters/commit/f37a3f8917bd0dc6931f90f79eb72fd7b47847f3))
+
+  - store the vanilla world UID in each new world's settings file
+  - match local settings by UID so worlds with the same seed keep separate presets
+  - ignore settings files from older alpha builds without a UID; those worlds start vanilla
+  - add opt-in LocalSidecarFallback for copied settings files when the host sends none
+  - print the world UID in the log so an old settings file can be updated by hand
+  - update the Thunderstore description and guides for UID matching and the fallback switch
+* **60:** sync world settings through Steam Cloud ([#66](https://github.com/Mkbewe/valheim-open-waters/issues/66)) ([dd259d0](https://github.com/Mkbewe/valheim-open-waters/commit/dd259d0bdb70cc955a1f79a27bd6dd4365e38335))
+
+  - keep the sidecar beside the world in cloud or local save folders
+  - write cloud sidecars through FileHelpers with a local fallback on failure
+  - find sidecars by world UID in the world's source, then the other source
+  - migrate a sidecar to the world's current source when it moves
+  - add core tests for UID lookup, copying and migration
+  - update guides and the store changelog for cloud and local paths
+
+### Bug Fixes
+
+* **63:** reserve a valid test version block for zero patches ([#64](https://github.com/Mkbewe/valheim-open-waters/issues/64)) ([40cb013](https://github.com/Mkbewe/valheim-open-waters/commit/40cb013a1bcf537d2a5e14cf7ad46af0098a2229))
+
+  - start zero-patch test builds at 0.2.101 instead of 0.2.1
+  - keep 0.2.1 through 0.2.100 free for real releases
+  - reset the test counter when the base version changes
+  - reject builds that would leave the reserved version block
+  - document the zero-patch versioning rule
+
+### Documentation
+
+* **56:** backfill and enforce the store changelog ([#65](https://github.com/Mkbewe/valheim-open-waters/issues/65)) ([c7b1d9c](https://github.com/Mkbewe/valheim-open-waters/commit/c7b1d9c9a8f762ae356dbea3529e742d437cecb5))
+
+  - add 0.2.0, 0.1.2, 0.1.1 and 0.1.0 entries for Thunderstore
+  - refuse a release without a matching docs/CHANGELOG-STORE.md section
+  - include the store changelog in the release commit
+  - document the manual step in README
+* **59:** refactor README and player guides ([#67](https://github.com/Mkbewe/valheim-open-waters/issues/67)) ([cda3f7d](https://github.com/Mkbewe/valheim-open-waters/commit/cda3f7d6ec6c0d799dfecd98348270f741353cfa))
+
+  - describe the mod as more open ocean with fewer islands
+  - make installation and hosted-world setup easier to follow
+  - document how to upgrade settings files from older alpha builds
+  - clarify Steam Cloud storage and world UID matching
+  - list known generation limitations consistently across the docs
+
 ## [0.2.0](https://github.com/Mkbewe/valheim-open-waters/compare/v0.1.2...v0.2.0) (2026-11-23)
 
 ### Features

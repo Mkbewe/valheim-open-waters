@@ -4,21 +4,21 @@
 
 # Open Waters
 
-**Early alpha:** Open Waters is a **Valheim world generation mod** that creates fewer islands, more open ocean, and a more deliberate sailing experience for Valheim 1.0.21. Preview a world seed before creating it, then tune the starting island.
+**Early alpha:** Open Waters is a **Valheim world generation mod** that creates more open ocean, fewer islands, and a more deliberate sailing experience for Valheim 1.0.21. Preview a world seed before creating it, then adjust the starting island.
 
-Open Waters keeps vanilla coastlines by lowering terrain instead of deleting land. It works in **single-player** and in **hosted worlds**, with settings synchronized from the host to every client. Dedicated-server support is planned for a future release.
+Open Waters changes how Valheim generates its terrain, creating more open ocean and fewer islands. It works in **hosted worlds**, with settings synchronized from the host to every client. Dedicated-server support is planned for a future release.
 
 [Read the full User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md) | [Report a problem](https://github.com/Mkbewe/valheim-open-waters/issues)
 
 ## What it changes
 
-Open Waters is for players who want fewer islands, more ocean, more sailing, and a more exploration-focused Valheim world.
+Open Waters is for players who want more open ocean, fewer islands, more sailing, and a more exploration-focused Valheim world.
 
-- **Fewer islands and more open ocean:** choose the `Few` or `Medium` island preset.
+- **More open ocean, fewer islands:** choose the `Few` or `Medium` island preset.
 - **New-world preview:** compare land and biomes for a seed before creating the world.
 - **Starting-island controls:** remove high mountains and limit the biomes on the starting island.
-- **Vanilla coastlines:** terrain is lowered instead of deleting land.
-- **Per-world settings:** a sidecar stores the settings used when the world was created and the vanilla world UID.
+- **Generated terrain:** the mod changes world generation instead of reshaping an existing world.
+- **Per-world settings:** `OpenWaters.worldSettings` records the options used when the world was created, plus the vanilla world UID. The file follows the world's save: Steam Cloud worlds keep it in the cloud, local worlds in `worlds_local`; if cloud storage is unavailable, it falls back to local storage.
 
 Few targets about 27% of vanilla land; Medium about 50%. These values are relative to the same seed in vanilla, not the whole map.
 
@@ -27,7 +27,7 @@ Few targets about 27% of vanilla land; Medium about 50%. These values are relati
 | Vanilla - land | Vanilla - biomes |
 | --- | --- |
 | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-lands.png" alt="Vanilla land preview"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/vanila-generated-bioms.png" alt="Vanilla biome preview"> |
-| More land and vanilla coastlines. | Vanilla biome distribution. |
+| Vanilla land distribution. | Vanilla biome distribution. |
 
 | Medium - land | Medium - biomes |
 | --- | --- |
@@ -56,7 +56,7 @@ Few targets about 27% of vanilla land; Medium about 50%. These values are relati
 | Vanilla world | Few world | Medium world |
 | --- | --- | --- |
 | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-vanila.png" alt="Generated vanilla Valheim world"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-few.png" alt="Generated Valheim world with the Few preset"> | <img src="https://raw.githubusercontent.com/Mkbewe/valheim-open-waters/main/docs/images/world-medium.png" alt="Generated Valheim world with the Medium preset"> |
-| Vanilla world generation. | Few islands, more open ocean. | Medium islands, about half the vanilla land. |
+| Vanilla world generation. | More open ocean, fewer islands. | Medium islands, about half the vanilla land. |
 
 ## Installation
 
@@ -86,6 +86,8 @@ BepInEx/config/valheim.openwaters.cfg
 | Section | Key | Default |
 | --- | --- | --- |
 | General | `Enabled` | `true` |
+| General | `DebugSelfTest` | `false` |
+| General | `LocalSidecarFallback` | `false` |
 | Few | `LandFraction` | `0.27` |
 | Few | `FrequencyScale` | `0.60` |
 | Few | `PeakProtection` | `0.20` |
@@ -96,13 +98,15 @@ BepInEx/config/valheim.openwaters.cfg
 | Medium | `PeakProtection` | `0.60` |
 | Medium | `DetailDamping` | `0.35` |
 
-`LandFraction` is relative to vanilla land for the same seed, not a percentage of the world.
+`LandFraction` is relative to vanilla land for the same seed, not a percentage of the world. Lower `FrequencyScale` makes larger islands; higher `PeakProtection` keeps more mountains.
+
+`DebugSelfTest` is a diagnostic switch; leave it off for normal play. `LocalSidecarFallback` lets a client use a manually copied settings file when the host does not provide compatible settings; leave it off for normal play.
 
 ## FAQ
 
-### How do I get fewer islands in Valheim?
+### How do I get more open ocean and fewer islands in Valheim?
 
-Install Open Waters, start a new world, and choose the `Few` or `Medium` island preset. The mod changes world generation; it does not remove land from an already generated world.
+Install Open Waters, start a new world, and choose the `Few` or `Medium` island preset. The mod changes world generation; it does not reshape existing worlds.
 
 ### Can I preview a Valheim world before creating it?
 
@@ -114,7 +118,13 @@ It is designed around new worlds. Existing worlds are not reshaped, and you shou
 
 ### Does Open Waters work in multiplayer?
 
-Yes for hosted worlds. The host sends its world settings to every client during the `PeerInfo` handshake, so all players generate the same terrain. Every client needs Open Waters installed; clients without the mod are rejected before they can generate anything, and clients with incompatible settings get a clear message and are disconnected. If the settings are not received, enable `LocalSidecarFallback` and copy `OpenWaters.worldSettings`; the client matches it by the world UID. Dedicated servers are not supported yet.
+Yes, in **hosted worlds**. To make it work for everyone:
+
+1. Install the **same Open Waters version** on the host and on every player.
+2. Create the world on the host and set the island preset and starting-island options there. These settings are saved with the world.
+3. Have everyone join normally. The host sends the world settings to each client during the connection handshake, so all players generate the same terrain. No manual file copying or config matching is needed in normal play.
+
+Players without Open Waters cannot join a world that uses custom settings and will see the game's "wrong version" error. Dedicated servers are not supported yet.
 
 ### Is Open Waters compatible with other world-generation mods?
 
@@ -122,14 +132,13 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 
 ## Known limitations
 
-- **Hosted worlds need Open Waters on every client.** The host synchronizes settings during the handshake; clients without the mod are rejected with the game's "wrong version" error. Clients with the mod get a specific in-game message when settings are incompatible, and are disconnected.
-- **Steam Cloud keeps the sidecar with the world.** A cloud world stores `OpenWaters.worldSettings` in its cloud save folder; local worlds use `worlds_local`. If cloud storage is unavailable, the sidecar falls back to local storage.
-- **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
-- **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
+- **Settings-file matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied settings file is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
+- **Settings files from older alpha builds (before 0.2.1) need a UID.** Add `uid=<id>` to `OpenWaters.worldSettings` (the UID is in `BepInEx/LogOutput.log`), or create a new world. Without a UID, the file is ignored and the world generates vanilla terrain.
 - **Preview generation can briefly freeze the game.**
+- **Starting-island detection is not perfect.** Nearby islands can be modified by mistake, and parts of the starting island cut off by rivers are not modified. `Remove mountains` can also change the starting island's shape.
 - **Boss and location placement changes.** Fewer islands change how many locations are generated, including boss altars. Testing confirmed boss locations can spawn, but 100% reliability cannot be guaranteed.
-- **The game can be much harder.** Fewer islands mean fewer resources and longer journeys. With Max biomes: 1, reaching a Black Forest may require building a raft.
-- **World size is fixed.** The radius in the sidecar does not resize Valheim's world.
+- **Mountain locations can be missing with the Few preset.** Compressed peaks may not reach the height caves need, so some mountain locations, including caves, may not spawn. A fix is planned.
+- **The game can be much harder.** Fewer islands mean fewer resources and longer journeys. With `Max biomes: 1`, reaching a Black Forest may require building a raft, and finding boars to tame can be harder on a small starting island.
 - **The starting island is the only island with biome limits.**
 
 ## Links
@@ -137,7 +146,7 @@ No compatibility is guaranteed. Avoid combining it with other mods that replace 
 - [User Guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md)
 - [Source code](https://github.com/Mkbewe/valheim-open-waters)
 - [Issues and feedback](https://github.com/Mkbewe/valheim-open-waters/issues)
-- [Changelog](https://github.com/Mkbewe/valheim-open-waters/blob/main/CHANGELOG.md)
+- [Changelog](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/CHANGELOG-STORE.md)
 
 ## AI disclosure
 

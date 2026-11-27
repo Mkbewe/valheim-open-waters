@@ -4,9 +4,9 @@
 
 # Open Waters
 
-Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases open ocean. It keeps vanilla coastlines by lowering terrain instead of removing land.
+Valheim 1.0.21 mod for BepInEx that increases open ocean and reduces the number of islands by changing how the world's terrain is generated.
 
-> **Early alpha:** local and hosted worlds are supported; every client needs the same mod version. Dedicated-server support is still planned, and settings or world compatibility may change between builds.
+> **Early alpha:** hosted worlds are supported; the host and every client need the same mod version when the host uses custom settings. Dedicated-server support is still planned, and settings or world compatibility may change between builds.
 
 [![Release downloads](https://img.shields.io/github/downloads/Mkbewe/valheim-open-waters/total?style=flat-square&label=release%20downloads)](https://github.com/Mkbewe/valheim-open-waters/releases)
 
@@ -44,26 +44,28 @@ Valheim 1.0.21 mod for BepInEx that reduces the number of islands and increases 
 - Enable toggle, island preset slider, starting-island section (`Remove mountains`, `Max biomes`), `Preview` toggle.
 - `Generate preview` renders a 400x400 map from 512x512 samples, with `Land` / `Biomes` views, biome colours, separate swamp-water colour and spawn marker.
 - Preview work is split across frames (16 rows per step). Land and biome textures are cached in memory (up to 8 entries).
-- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` next to that world's own files: `worlds_local\<world>\` for local worlds and `worlds\<world>\` for Steam Cloud worlds. The sidecar stores the settings and the vanilla world UID; sidecars are matched by UID. The sidecar is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a usable sidecar the preset is Vanilla; a malformed or incompatible sidecar blocks the world load with an error, while a sidecar without a UID is ignored. When joining a hosted world, the host sends the generation settings to every client during the handshake, so no local sidecar is needed.
+- New-world settings are captured on creation and saved as `OpenWaters.worldSettings` next to that world's own files: `worlds_local\<world>\` for local worlds and `worlds\<world>\` for Steam Cloud worlds. It stores the generation options and the vanilla world UID; settings files are matched by UID. It is an immutable snapshot of the preset and the effective tuning values; existing worlds ignore later config changes. Without a matching settings file the preset is Vanilla; a malformed or incompatible settings file blocks the world load with an error, while a settings file without a UID is ignored. When joining a hosted world, the host sends the generation settings to every client during the handshake, so no local settings file is needed.
 
 ### Hosted worlds
 
-- The host sends its generation settings to each client in the `PeerInfo` handshake; clients generate the same world without copying sidecars.
-- Clients without Open Waters are rejected before they can generate terrain. They see the game's "wrong version" connection error.
+- The host sends its generation settings to each client in the `PeerInfo` handshake; clients generate the same world without copying settings files.
+- Clients without Open Waters are rejected from a world that uses custom settings before they can generate terrain. They see the game's "wrong version" connection error.
 - Clients with Open Waters get a specific in-game message and are disconnected if the server's settings or generator version are incompatible.
-- A client with the mod joining a vanilla host plays a vanilla world and ignores its local sidecar, so local settings cannot corrupt the host's world. `LocalSidecarFallback` can override this for a manual sidecar fallback.
+- A client with the mod joining a vanilla host plays a vanilla world and ignores its local settings file, so local settings cannot corrupt the host's world. `LocalSidecarFallback` can override this for a manually copied settings file.
 - Setting `Enabled = false` keeps that client fully vanilla - it does not advertise the mod and does not apply server settings.
 
 ## Constraints
 
 - World size is fixed; `WorldRadius` is used only for analysis and preview sampling.
-- `BiomeLimit` is stored in the sidecar but not applied.
-- Hosted worlds synchronize their generation settings to clients during the handshake; every client needs the mod. Steam Cloud worlds keep their sidecar in the cloud save folder; local worlds keep it in `worlds_local`.
-- Local sidecars are matched by the vanilla world UID; a sidecar without a UID is ignored.
+- `BiomeLimit` is stored in the settings file but not applied.
+- Hosted worlds synchronize their generation settings to clients during the handshake; every client needs the mod when the world uses custom settings. Steam Cloud worlds keep their settings file in the cloud save folder; local worlds keep it in `worlds_local`.
+- Local settings files are matched by the vanilla world UID; a settings file without a UID is ignored. Add `uid=<id from BepInEx/LogOutput.log>` to update an older file, or create a new world.
 - `LocalSidecarFallback` is off by default; enabling it can change terrain on a vanilla host.
 - Calibration has no disk cache; only preview textures are cached.
 
 ## Install
+
+Install **Open Waters** from [Thunderstore](https://thunderstore.io/c/valheim/p/MkbewePP/OpenWaters/) or r2modman. For a manual install:
 
 1. Install BepInExPack Valheim.
 2. Copy `OpenWaters.dll` to `<VALHEIM_DIR>/BepInEx/plugins/OpenWaters/`.

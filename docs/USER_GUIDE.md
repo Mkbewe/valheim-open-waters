@@ -1,20 +1,22 @@
 # Open Waters - User Guide
 
-Open Waters is an alpha (0.2.0) world-generation mod for Valheim 1.0.21. It gives you fewer islands and more open ocean, while keeping normal Valheim coastlines. It works in **single-player** and in **hosted worlds**: the host sends its generation settings to every client during the handshake, so everyone generates the same world. See [Hosted worlds](#hosted-worlds).
+Open Waters is an alpha (0.2.0) world-generation mod for Valheim 1.0.21. It gives you more open ocean and fewer islands. It works in **hosted worlds**: the host sends its generation settings to every client during the handshake, so everyone generates the same world. Dedicated-server support is planned for a future release. See [Hosted worlds](#hosted-worlds).
 
 ## Requirements
 
 - Valheim 1.0.21 - this is the version the mod is tested on; older versions may work but are not verified
 - BepInEx 5.4.x (BepInExPack Valheim)
-- The mod installed on every client of a hosted world (the host synchronizes settings automatically)
+- The mod installed on the host and every client of a hosted world that uses custom settings (the host synchronizes settings automatically)
 
 ## Installation
+
+Install **Open Waters** from [Thunderstore](https://thunderstore.io/c/valheim/p/MkbewePP/OpenWaters/) or r2modman. For a manual install:
 
 1. Install BepInExPack Valheim if you have not already.
 2. Copy `OpenWaters.dll` into `<VALHEIM_DIR>/BepInEx/plugins/OpenWaters/`.
 3. Start the game and create a new world from the New World screen.
 
-For local builds, import the release ZIP through r2modman: **Settings -> Profile -> Import local mod**. A Thunderstore release is planned; once published, the mod can also be installed through r2modman or the Thunderstore Mod Manager.
+For local builds, import the release ZIP through r2modman: **Settings -> Profile -> Import local mod**.
 
 The plugin writes `BepInEx/config/valheim.openwaters.cfg` on first start. Advanced tuning lives there; the in-game panel is enough for normal use.
 
@@ -51,7 +53,7 @@ Vanilla reference on the same seed:
 
 ### Starting Island
 
-These options affect only the starting island; the rest of the world keeps its terrain and biomes.
+These options affect only the starting island; the rest of the world uses the selected island preset unchanged.
 
 | Control | What it does |
 | --- | --- |
@@ -78,9 +80,9 @@ Examples on the same seed with the **Few** preset:
 | **Generate preview** | Renders a map of the current seed and settings. |
 | **Land / Biomes** | Switches the preview between land/water and biome colours. |
 
-## Only the starting island is changed
+## Starting-island options
 
-Both options below apply **only** to the island containing the spawn point. All other islands keep their vanilla terrain and biomes.
+Both options below apply **only** to the island containing the spawn point. They do not change other islands, which use the selected island preset.
 
 ### Remove mountains
 
@@ -118,30 +120,43 @@ Generated **Few** world in game:
 
 ## Settings per world
 
-When you create a world, the current settings are saved in a plain-text file called `OpenWaters.worldSettings`, in the **local** folder of that world:
+When you create a world, the current settings are saved in a plain-text file called `OpenWaters.worldSettings`, next to the world's save. For a local world, the path is:
 
 `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\worlds_local\<world name>\OpenWaters.worldSettings`
 
-This is where the world's local files (`.db`, `.fwl`, map caches) live. Local worlds keep the sidecar here, in `worlds_local\<world>\`. Steam Cloud worlds keep it alongside their own save in `worlds\<world>\`, so it travels with the world. If cloud storage is unavailable or full, the sidecar is written locally and a warning is logged. See [Known limitations](#known-limitations-alpha).
+This is where the world's local files (`.db`, `.fwl`, map caches) live. Local worlds keep the settings file here, in `worlds_local\<world>\`. Steam Cloud worlds keep it alongside their own save in `worlds\<world>\`, so it travels with the world. If cloud storage is unavailable or full, the settings file is written locally and a warning is logged.
 
-If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no sidecar with the matching world UID is found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local sidecar; see [Hosted worlds](#hosted-worlds).
+If Valheim was started with a custom `-savedir`, use that save root instead of `%USERPROFILE%\AppData\LocalLow\IronGate\Valheim`. The file is read automatically when the world is loaded later - the New World form is not needed again. If no settings file with the matching world UID is found, generation falls back to Vanilla. When joining a hosted world the client uses the settings received from the host and ignores its local settings file; see [Hosted worlds](#hosted-worlds).
 
-The sidecar stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion`, the seed and the vanilla world `uid`. Changing the config later does not change an existing world.
+The settings file stores the complete generation snapshot: preset, world radius, general biome limit, starting-island biome limit, the `Remove mountains` flag, the effective tuning values from `valheim.openwaters.cfg` (after clamping), plus `generatorVersion`, `modVersion`, the seed and the vanilla world `uid`. Changing the config later does not change an existing world.
 
-If a sidecar exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no usable sidecar, including a sidecar without a UID, is treated as vanilla.
+If a settings file exists but is malformed or was written by an incompatible `generatorVersion`, the world load is **blocked** with a popup instead of silently generating different terrain. A world with no settings file, or a settings file without a UID, is treated as vanilla.
+
+### Updating a settings file from an older alpha
+
+Settings files created before 0.2.1 have no `uid` line, so Open Waters ignores them and the world loads with vanilla terrain. To keep using the old settings:
+
+1. Load the world once.
+2. Open `BepInEx/LogOutput.log` and find the line `[Settings] World '<world name>' uid=<id>.`
+3. Open the world's `OpenWaters.worldSettings` and add `uid=<id>` on a new line.
+4. Load the world again. Open Waters matches the file and uses its settings.
+
+Steam Cloud worlds may still have the old file in `worlds_local`. Once you add the UID, Open Waters copies it to the cloud save automatically.
+
+If the file uses an unsupported `generatorVersion`, it cannot be updated this way; create a new world instead.
 
 ## Hosted worlds
 
-Open Waters synchronizes generation settings between the host and the clients. You do not need to copy the sidecar or match config files by hand.
+Open Waters synchronizes generation settings between the host and the clients. Normally, you do not need to copy the settings file or match config files by hand.
 
 1. Install the same Open Waters version on the host and on every client.
-2. Create the world on the host and set its options on the New World screen. The sidecar is written next to the world's own save, cloud or local.
+2. Create the world on the host and set its options on the New World screen. The settings file is written next to the world's own save, cloud or local.
 3. Join the hosted world. During the handshake the host sends the world's generation settings to each client, and every client generates the same terrain.
 4. The in-game panel cannot change settings on an existing world; create a new world to change its preset.
 
 **Clients without Open Waters** cannot join a hosted world that uses custom settings. The host rejects them before they generate any terrain; they see the game's "wrong version" connection error.
 
-**Clients with Open Waters** receive a specific in-game message and are disconnected when the server's payload is invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local sidecar unless `LocalSidecarFallback` is enabled.
+**Clients with Open Waters** receive a specific in-game message and are disconnected when the host's settings are invalid or its generator version is unsupported. A client with the mod joining a vanilla host simply plays a vanilla world and ignores its own local settings file unless `LocalSidecarFallback` is enabled.
 
 If the host's settings are not received, enable `LocalSidecarFallback` in `valheim.openwaters.cfg` and copy the host's `OpenWaters.worldSettings` into the matching world folder on the client (`worlds_local` or `worlds`). The client matches the file by the world UID from the vanilla handshake, not by seed.
 
@@ -176,22 +191,19 @@ Lower `FrequencyScale` makes larger islands. Higher `PeakProtection` keeps more 
 
 `DebugSelfTest` is a diagnostic switch: with it enabled, the mod runs a short set of world-settings checks at startup and writes `PASS`/`FAIL` lines to `BepInEx/LogOutput.log`. Leave it off for normal play.
 
-`LocalSidecarFallback` lets the client use a manually copied sidecar when the host does not provide compatible settings. Leave it off for normal play: on a vanilla host, a local sidecar can change the terrain and desync the client.
+`LocalSidecarFallback` lets the client use a manually copied settings file when the host does not provide compatible settings. Leave it off for normal play: on a vanilla host, a local settings file can change the terrain and desync the client.
 
 ## Known limitations (alpha)
 
-- **Hosted worlds require the mod on every client.** Settings are synchronized from the host during the handshake; see [Hosted worlds](#hosted-worlds).
-- **Steam Cloud keeps settings with the world.** A cloud world's `OpenWaters.worldSettings` travels with its cloud save; a local world's file stays in `worlds_local`. When cloud storage is unavailable, the sidecar falls back to local storage with a warning.
-- **Sidecar matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied sidecar is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
-- **Sidecars from older alpha builds are ignored.** A sidecar without a world UID is not matched; create a new world or remove the old sidecar.
-- World size is fixed; the radius stored in the sidecar does not resize Valheim's world.
-- `BiomeLimit` (general per-island limit) is stored but not applied yet; only the starting island has biome limits.
-- No disk cache for terrain calibration.
+- **Settings-file matching uses the world UID.** When joining a hosted world the client uses the settings received from the host. If those settings are unavailable, a manually copied settings file is matched by the world UID when `LocalSidecarFallback` is enabled. There is no seed fallback.
+- **Settings files from older alpha builds (before 0.2.1) need a UID.** See [Updating a settings file from an older alpha](#updating-a-settings-file-from-an-older-alpha). Without a UID, the file is ignored and the world generates vanilla terrain.
+- **Only the starting island has biome limits.** The general per-island biome limit is stored but not applied yet.
+- **Terrain calibration is not cached on disk.**
 - **Preview generation can freeze the game.** Windows may report that the application is not responding. Click **Wait**; in most cases the preview finishes successfully.
 - **Starting-island detection is not perfect**, especially on Vanilla worlds with many islands close together. Nearby islands can be modified by mistake. Parts of the starting island cut off by rivers become separate islands and are not modified. `Remove mountains` can also change river placement and therefore the starting island's shape, which can cause differences between the preview and the generated world.
 - **Boss and location placement changes with fewer islands.** The number and distribution of generated locations, including boss altars, can change. Testing confirmed that boss locations can spawn, but 100% reliability cannot be guaranteed on every seed.
-- **The game is harder and slower with fewer islands.** Fewer islands mean fewer resources and longer journeys. With `Max biomes: 1`, reaching a Black Forest may require building a raft.
-- **Every client needs Open Waters to join a hosted world with custom settings.** The server rejects clients without the mod using the game's "wrong version" connection error. Clients with the mod receive a specific message when the server's settings are incompatible, and are disconnected.
+- **Mountain locations can be missing with the Few preset.** Compressed peaks may not reach the height caves need, so some mountain locations, including caves, may not spawn. A fix is planned.
+- **The game is harder and slower with fewer islands.** Fewer islands mean fewer resources and longer journeys. With `Max biomes: 1`, reaching a Black Forest may require building a raft, and finding boars to tame can be harder on a small starting island.
 
 ## Reporting a problem
 

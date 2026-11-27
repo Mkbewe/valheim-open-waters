@@ -2,12 +2,13 @@
 
 ## 0.2.1
 
-- Settings now follow a world ID instead of the seed. New worlds save it automatically.
-- **Old worlds:** add `uid=<id from the BepInEx log>` to `OpenWaters.worldSettings`, or create a new world. Otherwise they generate vanilla terrain.
-- Hosting works as before: everyone needs the mod and gets the host's settings.
-- New `LocalSidecarFallback` option allows a copied settings file. Leave it off normally.
-- Steam Cloud worlds keep their Open Waters settings with the world, so the same terrain appears on another PC without copying files.
+- World settings are now matched by a world UID instead of the seed, so worlds with the same seed keep separate settings. New worlds save it automatically.
+- **Old worlds:** load the world once to get its UID from `BepInEx/LogOutput.log`, then add `uid=<id>` to `OpenWaters.worldSettings`. Without the UID, the world uses vanilla terrain. You can also create a new world. [Step-by-step guide](https://github.com/Mkbewe/valheim-open-waters/blob/main/docs/USER_GUIDE.md#updating-a-settings-file-from-an-older-alpha).
+- Steam Cloud worlds now keep `OpenWaters.worldSettings` in the cloud save folder, so the custom terrain travels with the world to another PC. Previously the settings file stayed on the original PC.
 - Local worlds keep their settings in `worlds_local`. If Steam Cloud is unavailable or full, the settings fall back to local storage with a warning.
+- New `LocalSidecarFallback` option lets a client use a manually copied settings file when the host's settings are unavailable. Leave it off for normal play.
+- Hosted worlds work as before: when custom settings are used, every player needs the mod and clients receive the host's settings automatically.
+- Updated the Thunderstore page and User Guide with hosted-world setup and settings-file upgrade steps.
 
 ## 0.2.0 (2026-11-23)
 
